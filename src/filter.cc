@@ -1,7 +1,7 @@
 #include "filter.h"
 
 #include <algorithm>
-#include <fstream>
+#include <sstream>
 #include <memory>
 #include <ranges>
 #include <vector>
@@ -15,8 +15,12 @@ using namespace std::literals;
 namespace pefti {
 
 // Filters the input playlists and creates a new playlist
-void Filter::filter(std::vector<std::ifstream> in_playlists,
+void Filter::filter(std::vector<std::string>&& in_playlists,
                     Playlist& new_playlist) {
+  std::vector<std::istringstream> streams(in_playlists.size());
+  std::ranges::for_each(in_playlists, [&streams](auto&& playlist) {
+    streams.emplace_back(std::istringstream{playlist});
+  });
   //
   // Filters out a channel if it is a member of a blocked group
   auto block_group = [this](auto&& channel) {
@@ -60,8 +64,8 @@ void Filter::filter(std::vector<std::ifstream> in_playlists,
   };
   //
   // Filter all channels from the input playlists to create the new playlist
-  for (auto& playlist : in_playlists) {
-    auto view = std::views::istream<IptvChannel>(playlist) |
+  for (auto& stream : streams) {
+    auto view = std::views::istream<IptvChannel>(stream) |
                 std::views::filter(block_group) |
                 std::views::filter(block_channel) |
                 std::views::filter(block_url) |

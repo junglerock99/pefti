@@ -25,8 +25,8 @@ class Playlist {
   void push_back(IptvChannel channel) { m_playlist.push_back(channel); }
 };
 
-std::vector<std::ifstream> load_playlists(
-    const std::vector<std::string>& filenames);
+std::vector<std::string> load_playlists(
+  const std::vector<std::string>& filenames);
 void store_playlist(std::string_view filename, Playlist& playlist);
 
 }  // namespace pefti

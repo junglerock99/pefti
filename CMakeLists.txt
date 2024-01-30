@@ -13,30 +13,34 @@ set(SOURCE_FILES
     ${SOURCE_DIR}/sorter.cc
     ${SOURCE_DIR}/transformer.cc)
 
-project(${PROJECT_NAME}
-    LANGUAGES CXX)
+project(${PROJECT_NAME} LANGUAGES CXX)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
-
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIR})
-
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_options(${PROJECT_NAME} PRIVATE /W4)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    #target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+    # -Wno-array-bounds to suppress toml++ warnings
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wno-array-bounds)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # TODO: add macOS-specific flags 
 endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE libcurl)
+
+find_package(OpenSSL REQUIRED)
 
 include(FetchContent)
 
 FetchContent_Declare(
     tomlplusplus
     GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
-    GIT_TAG v3.4.0
-)
+    GIT_TAG v3.4.0)
 FetchContent_MakeAvailable(tomlplusplus)
 include_directories(${tomlplusplus_SOURCE_DIR}/include)
+
+FetchContent_Declare(curl
+  URL https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.zip)
+FetchContent_MakeAvailable(curl)
+include_directories(${curl_SOURCE_DIR}/include)

@@ -7,10 +7,8 @@ int main() {
   try {
     pefti::Application app;
     app.run();
-  } catch (const std::string& e) {
-    std::cerr << e << '\n';
-  } catch (const char* e) {
-    std::cerr << e << '\n';
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
   }
   return 0;
 }

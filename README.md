@@ -7,34 +7,32 @@ In a future version, pefti will also be able to filter an Electronic Program Gui
 
 Note that pefti is not interactive, it is intended to be run periodically to create an updated playlist with minimal effort.
 
-## Installation
+## Build
 
-Pefti does not need to be installed. It builds as an executable that runs from the command-line. It has no external dependencies so nothing else needs to be installed.
-
-To build pefti from source code on Linux:
+To build pefti from source code:
 ```
-> git clone https://github.com/junglerock99/pefti.git
-> cd pefti
-> mkdir build
-> cd build
-> cmake -DCMAKE_BUILD_TYPE=Release ..
-> make
+git clone https://github.com/junglerock99/pefti.git
+cd pefti
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
 ```
 The pefti executable will be in the build directory.
 
-A Windows executable will be added later.
+A Windows executable can be downloaded from the Releases section.
 
 ## Usage
 
-Pefti runs from the command-line. Before running pefti, a configuration file must be created. The configuration file must be named `pefti.toml` and be stored in the same directory as the pefti executable. TOML format is used for the configuration, the full TOML specification is at https://toml.io, but it may be easiest to copy one of the configuration examples to get started.
+pefti runs from the command-line. Before running pefti, a configuration file must be created. The configuration file must be named `pefti.toml` and be stored in the same directory as the pefti executable. TOML format is used for the configuration, the full TOML specification is at https://toml.io, but it may be easiest to copy one of the configuration examples to get started.
 
 ## Example Configurations
 
 Note that these examples show a small number of channels for brevity, a real playlist typically contains many channels.
 
-### Merge All
+### Merge Playlists
 
-This configuration merges multiple playlist files into one new file. This would produce a new file named `new.m3u` which contains all of the IPTV channels from both iptv-1.m3u and iptv-2.m3u. This is a special case, because no groups or channels are blocked then all groups and channels are copied to the new.m3u output file. No filtering is performed.
+This configuration merges multiple playlist files into one new file. This would produce a new file named `new.m3u` which contains all of the IPTV channels from both iptv-1.m3u and iptv-2.m3u. This is a special case, because no groups or channels are blocked pefti copies all groups and channels to the new.m3u output file. No filtering is performed.
 ```
 [files]
 input_playlists = ["/home/user/iptv-1.m3u", "/home/user/iptv-2.m3u"]
@@ -84,7 +82,7 @@ allow = [
 
 ### All Currently Supported Features
 
-The new playlist will contain two channels in the USA group, one channel in the Canada group, plus all channels in the Music group, in that order. If the URL for any channel matches one of the blocked URLs then that channel will be filtered out. If there are multiple instances of the same channel in the input playlists, then up to three instances will appear in the new playlist file because `number_of_duplicates` is set to 2. `duplicates_location` specifies where the duplicates will be located, in this case they will be placed at the end of the group. The qualities array specifies which instance of a channel is preferred when there are multiple instances. Pefti will search the channel's name to find the preferred instance. `tags_block` allows you to filter tags, in this case the `tvg-logo` and `tvg-name` tags will not appear in the new playlist file for any channel. Any channel that contains "4K","SD" or "spanish" in the channel name in the input playlist file will be filtered out.
+The new playlist will contain two channels in the USA group, one channel in the Canada group, plus all channels in the Music group, in that order. If the URL for any channel matches one of the blocked URLs then that channel will be filtered out. If there are multiple instances of the same channel in the input playlists, then up to three instances will appear in the new playlist file because `number_of_duplicates` is set to 2. `duplicates_location` specifies where the duplicates will be located, in this case they will be placed at the end of the group. The qualities array specifies which instance of a channel is preferred when there are multiple instances. pefti will search the channel's name to find the preferred instance. `tags_block` allows you to filter tags, in this case the `tvg-logo` and `tvg-name` tags will not appear in the new playlist file for any channel. Any channel that contains "4K","SD" or "spanish" in the channel name in the input playlist file will be filtered out.
 ```
 [files]
 input_playlists = ["/home/user/iptv-1.m3u", "/home/user/iptv-2.m3u"]
@@ -154,11 +152,10 @@ On a PC with a 3.2GHz i5-4460 CPU and a solid-state drive, it takes 570 millisec
 
 ## Technical
 
-Pefti only recognizes two extended M3U directives: #EXTM3U and #EXTINF.
+pefti only recognizes two extended M3U directives: #EXTM3U and #EXTINF.
 
 ## To Do
 
-* Download playlists from URL
 * Add command-line option for location of config file
 * Allow some configuration options to be specified on the command-line
 * Add option to use the original channel name
