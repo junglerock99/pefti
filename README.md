@@ -32,10 +32,10 @@ Note that these examples show a small number of channels for brevity, a real pla
 
 ### Merge Playlists
 
-This configuration merges multiple playlist files into one new file. This would produce a new file named `new.m3u` which contains all of the IPTV channels from both iptv-1.m3u and iptv-2.m3u. This is a special case, because no groups or channels are blocked pefti copies all groups and channels to the new.m3u output file. No filtering is performed.
+This configuration merges multiple playlist files into one new file. This would produce a new file named `new.m3u` which contains all of the IPTV channels from both iptv-1.m3u and iptv-2.m3u. This is a special case, because no groups or channels are blocked, pefti copies all groups and channels to the new.m3u output file. No filtering is performed.
 ```
 [files]
-input_playlists = ["/home/user/iptv-1.m3u", "/home/user/iptv-2.m3u"]
+input_playlists = ["https://example.com/iptv-1.m3u", "https://example.com/iptv-2.m3u"]
 new_playlist = "new.m3u"
 ```
 
@@ -44,7 +44,7 @@ new_playlist = "new.m3u"
 This configuration filters groups from a playlist. The new file contains all channels from the input playlists except for channels that have a `group-title="News"` tag or a `group-title="Weather"` tag.
 ```
 [files]
-input_playlists = ["/home/user/iptv-1.m3u", "/home/user/iptv-2.m3u"]
+input_playlists = ["https://example.com/iptv-1.m3u", "https://example.com/iptv-2.m3u"]
 new_playlist = "new.m3u"
 [groups]
 block = ["News","Weather"]
@@ -55,7 +55,7 @@ block = ["News","Weather"]
 This configuration filters all groups from a playlist except for the allowed groups. The new file only contains channels from the input playlists that have a `group-title="News"` tag or a `group-title="Weather"` tag.
 ```
 [files]
-input_playlists = ["/home/user/iptv-1.m3u", "/home/user/iptv-2.m3u"]
+input_playlists = ["https://example.com/iptv-1.m3u", "https://example.com/iptv-2.m3u"]
 new_playlist = "new.m3u"
 [groups]
 allow = ["News","Weather]
@@ -66,7 +66,7 @@ allow = ["News","Weather]
 This configuration creates a new playlist that contains only the specified channels. The new playlist will contain only three channels, two in the USA group and one in the Canada group.
 ```
 [files]
-input_playlists = ["/home/user/iptv-1.m3u", "/home/user/iptv-2.m3u"]
+input_playlists = ["https://example.com/iptv-1.m3u", "https://example.com/iptv-2.m3u"]
 new_playlist = "new.m3u"
 [channels]
 allow = [  
@@ -85,7 +85,7 @@ allow = [
 The new playlist will contain two channels in the USA group, one channel in the Canada group, plus all channels in the Music group, in that order. If the URL for any channel matches one of the blocked URLs then that channel will be filtered out. If there are multiple instances of the same channel in the input playlists, then up to three instances will appear in the new playlist file because `number_of_duplicates` is set to 2. `duplicates_location` specifies where the duplicates will be located, in this case they will be placed at the end of the group. The qualities array specifies which instance of a channel is preferred when there are multiple instances. pefti will search the channel's name to find the preferred instance. `tags_block` allows you to filter tags, in this case the `tvg-logo` and `tvg-name` tags will not appear in the new playlist file for any channel. Any channel that contains "4K","SD" or "spanish" in the channel name in the input playlist file will be filtered out.
 ```
 [files]
-input_playlists = ["/home/user/iptv-1.m3u", "/home/user/iptv-2.m3u"]
+input_playlists = ["https://example.com/iptv-1.m3u", "https://example.com/iptv-2.m3u"]
 new_playlist = "new.m3u"
 [groups]
 block = []
@@ -118,7 +118,7 @@ The configuration options are grouped using TOML tables. A table starts with the
 ### [files] table
 Key | Type | Value 
 --- | --- | ---
-input_playlists | Array of text strings | Filenames of the input playlists
+input_playlists | Array of text strings | URLs of the input playlists
 new_playlist | Text string | Filename for the new playlist
 
 ### [groups] table
