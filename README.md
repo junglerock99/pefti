@@ -1,5 +1,5 @@
 # pefti
-Playlist and EPG Formatter/Transformer for IPTV
+Playlist and EPG Filter/Transformer for IPTV
 
 pefti is a command-line application that takes one or more IPTV playlist files in M3U format which contain a list of IPTV channels, filters and transforms the channels according to the user configuration, then outputs a new playlist file. Features include renaming channels, regrouping channels, choosing the order of channels and groups, removing/adding/changing channel tags, and more.
 
