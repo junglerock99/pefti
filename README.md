@@ -22,7 +22,7 @@ For EPGs, *pefti* assumes that the link to the playlist is in the `channel` tag:
 
 ## How It Works
 
-The diagram below shows how channels in the playlists are filtered to create a new playlist. There are two phases of filtering: 1) blocking channels and 2) allowing channels.
+The diagram below shows how channels in the playlists are filtered to create a new playlist. There are two phases of filtering: 1) blocking and 2) allowing.
 
 ### Filters
 
