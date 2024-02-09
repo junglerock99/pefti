@@ -4,12 +4,12 @@
 #include "config.h"
 
 #include <algorithm>
+#include <exception>
 #include <span>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <exception>
 
 #include "iptv_channel.h"
 
@@ -50,24 +50,32 @@ const std::string& Config::get_channel_new_name(
   return get_allowed_channel(channel_original_name).new_name;
 }
 
-std::span<std::string> Config::get_channels_group_names() {
-  return std::span(m_group_names);
-}
-
 const std::vector<IptvChannel::Tag>& Config::get_channel_tags(
     std::string_view channel_original_name) {
   return get_allowed_channel(channel_original_name).tags;
+}
+
+std::span<std::string> Config::get_channels_group_names() {
+  return std::span(m_group_names);
 }
 
 const Config::DuplicatesLocation& Config::get_duplicates_location() noexcept {
   return m_duplicates_location;
 }
 
-const std::vector<std::string>& Config::get_input_playlists_filenames() {
-  return m_input_playlists_filenames;
+const std::vector<std::string>& Config::get_epgs_urls() noexcept {
+  return m_epgs_urls;
+}
+
+const std::vector<std::string>& Config::get_playlists_urls() {
+  return m_playlists_urls;
 }
 
 int Config::get_max_num_duplicates() noexcept { return m_max_num_duplicates; }
+
+std::string_view Config::get_new_epg_filename() noexcept {
+  return m_new_epg_filename;
+}
 
 const std::string& Config::get_new_playlist_filename() noexcept {
   return m_new_playlist_filename;
@@ -297,38 +305,64 @@ void Config::convert_duplicates() {
   }
 }
 
+void Config::convert_epgs_urls() {
+  if (!m_config["resources"]["epgs"])
+    return;
+  auto epgs = m_config["resources"]["epgs"];
+  if (!epgs.is_array())
+    throw std::runtime_error("[files]epgs: expected an array");
+  auto array = epgs.as_array();
+  for (auto iter = array->cbegin(); iter != array->cend(); iter++) {
+    if (!((*iter).is_string()))
+      throw std::runtime_error(
+        "[files]epgs: array should contain text strings");
+    m_epgs_urls.push_back(**((*iter).as_string()));
+  }
+}
+
 // Converts all configuration settings from TOML to a generic format
 void Config::convert_from_toml() {
   convert_collections();
   convert_allowed_channels();
   convert_duplicates();
-  convert_input_playlist_filenames();
+  convert_playlists_urls();
   convert_new_playlist_filename();
+  convert_epgs_urls();
+  convert_new_epg_filename();
 }
 
-void Config::convert_input_playlist_filenames() {
-  if (!m_config["files"]["input_playlists"])
-    throw std::runtime_error("[files]input_playlists: missing");
-  auto input_playlists = m_config["files"]["input_playlists"];
-  if (!input_playlists.is_array())
-    throw std::runtime_error("[files]input_playlists: expected an array");
-  auto array = input_playlists.as_array();
-  for (auto iter = array->cbegin(); iter != array->cend(); iter++) {
-    if (!((*iter).is_string()))
-      throw std::runtime_error(
-        "[files]input_playlists: array should contain text strings");
-    m_input_playlists_filenames.push_back(**((*iter).as_string()));
-  }
+void Config::convert_new_epg_filename() {
+  if (!m_config["resources"]["new_epg"]) 
+    return;
+  auto new_epg{m_config["resources"]["new_epg"]};
+  if (!new_epg.is_string())
+    throw std::runtime_error("[files]new_epg: expected a text string");
+  m_new_epg_filename = m_config["resources"]["new_epg"].as_string()->get();
 }
 
 void Config::convert_new_playlist_filename() {
-  if (!m_config["files"]["new_playlist"]) 
+  if (!m_config["resources"]["new_playlist"]) 
     throw std::runtime_error("[files]new_playlist: missing");
-  auto new_playlist{m_config["files"]["new_playlist"]};
+  auto new_playlist{m_config["resources"]["new_playlist"]};
   if (!new_playlist.is_string())
     throw std::runtime_error("[files]new_playlist: expected a text string");
   m_new_playlist_filename =
-      m_config["files"]["new_playlist"].as_string()->get();
+      m_config["resources"]["new_playlist"].as_string()->get();
+}
+
+void Config::convert_playlists_urls() {
+  if (!m_config["resources"]["playlists"])
+    throw std::runtime_error("[files]playlists: missing");
+  auto playlists = m_config["resources"]["playlists"];
+  if (!playlists.is_array())
+    throw std::runtime_error("[files]playlists: expected an array");
+  auto array = playlists.as_array();
+  for (auto iter = array->cbegin(); iter != array->cend(); iter++) {
+    if (!((*iter).is_string()))
+      throw std::runtime_error(
+        "[files]playlists: array should contain text strings");
+    m_playlists_urls.push_back(**((*iter).as_string()));
+  }
 }
 
 const Config::AllowedChannel& Config::get_allowed_channel(

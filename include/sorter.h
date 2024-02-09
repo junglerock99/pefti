@@ -1,5 +1,4 @@
-#ifndef PEFTI_SORTER_H_
-#define PEFTI_SORTER_H_
+#pragma once
 
 #include <memory>
 #include <span>
@@ -40,5 +39,3 @@ class Sorter {
 };
 
 }  // namespace pefti
-
-#endif  // PEFTI_SORTER_H_

@@ -6,17 +6,18 @@ set(SOURCE_DIR src)
 set(SOURCE_FILES
     ${SOURCE_DIR}/application.cc
     ${SOURCE_DIR}/config.cc
+    ${SOURCE_DIR}/epg.cc
     ${SOURCE_DIR}/filter.cc
     ${SOURCE_DIR}/iptv_channel.cc
     ${SOURCE_DIR}/main.cc
     ${SOURCE_DIR}/playlist.cc
+    ${SOURCE_DIR}/resource.cc
+    ${SOURCE_DIR}/sax_fsm.cc
     ${SOURCE_DIR}/sorter.cc
     ${SOURCE_DIR}/transformer.cc)
 
 project(${PROJECT_NAME} LANGUAGES CXX)
-
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_DIR})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -27,8 +28,12 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # TODO: add macOS-specific flags 
 endif()
-target_link_libraries(${PROJECT_NAME} PRIVATE libcurl)
 
+#
+# External Packages
+#
+
+find_package(LibXml2 REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 include(FetchContent)
@@ -44,3 +49,6 @@ FetchContent_Declare(curl
   URL https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.zip)
 FetchContent_MakeAvailable(curl)
 include_directories(${curl_SOURCE_DIR}/include)
+
+target_include_directories (${PROJECT_NAME} PRIVATE ${LIBXML2_INCLUDE_DIR})
+target_link_libraries (${PROJECT_NAME} PRIVATE ${LIBXML2_LIBRARIES} libcurl)

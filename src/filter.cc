@@ -1,41 +1,52 @@
 #include "filter.h"
 
 #include <algorithm>
-#include <sstream>
 #include <memory>
+#include <optional>
 #include <ranges>
+#include <sstream>
+#include <string>
 #include <vector>
+
+#include <libxml/parser.h>
+#include <libxml/xmlmemory.h>
 
 #include "config.h"
 #include "iptv_channel.h"
 #include "playlist.h"
+#include "sax_fsm.h"
 
 using namespace std::literals;
 
 namespace pefti {
 
-// Filters the input playlists and creates a new playlist
-void Filter::filter(std::vector<std::string>&& in_playlists,
+// Filters playlists and creates a new playlist
+void Filter::filter(std::vector<std::string>&& playlists,
                     Playlist& new_playlist) {
-  std::vector<std::istringstream> streams(in_playlists.size());
-  std::ranges::for_each(in_playlists, [&streams](auto&& playlist) {
+  std::vector<std::istringstream> streams(playlists.size());
+  std::ranges::for_each(playlists, [&streams](auto&& playlist) {
     streams.emplace_back(std::istringstream{playlist});
   });
   //
   // Filters out a channel if it is a member of a blocked group
   auto block_group = [this](auto&& channel) {
-    return !(m_config->is_blocked_group(channel.get_tag("group-title"sv)));
+    auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
+    if (group_title != std::nullopt) {
+      return (!m_config->is_blocked_group(*group_title));
+    } else {
+      return true;
+    }
   };
   //
   // Filters out a channel if its name contains any of the text strings
   // that identify blocked channels
   auto block_channel = [this](auto&& channel) {
-    return !(m_config->is_blocked_channel(channel.get_original_name()));
+    return (!m_config->is_blocked_channel(channel.get_original_name()));
   };
   //
   // Filters out a channel if it has a blocked URL
   auto block_url = [this](auto&& channel) {
-    return !(m_config->is_blocked_url(channel.get_url()));
+    return (!m_config->is_blocked_url(channel.get_url()));
   };
   //
   // Filters out a channel if it is not an allowed channel or in an allowed
@@ -45,10 +56,13 @@ void Filter::filter(std::vector<std::string>&& in_playlists,
     const bool are_all_channels_allowed =
         (m_config->get_num_allowed_channels() +
          m_config->get_num_allowed_groups()) == 0;
+    const auto group_title = channel.get_tag_value(
+        IptvChannel::kTagGroupTitle);
     bool is_allowed{false};
     if (are_all_channels_allowed) {
       is_allowed = true;
-    } else if (m_config->is_allowed_group(channel.get_tag("group-title"sv))) {
+    } else if ((group_title != std::nullopt) && 
+               (m_config->is_allowed_group(*group_title))) {
       is_allowed = true;
     } else if (m_config->is_allowed_channel(channel.get_original_name())) {
       is_allowed = true;
@@ -71,10 +85,60 @@ void Filter::filter(std::vector<std::string>&& in_playlists,
                 std::views::filter(block_url) |
                 std::views::filter(allow_groups_and_channels) |
                 std::views::transform(block_tags);
-    for (auto channel : view) {
-      new_playlist.push_back(std::move(channel));
-    }
+    for (auto channel : view) { new_playlist.push_back(std::move(channel)); }
   }
+}
+
+// Filters EPGs and creates a new EPG file.
+// Copies <channel> nodes from all EPGs to the new EPG,
+// then copies <programme> nodes.
+void Filter::filter(std::vector<std::string>&& epgs, 
+                    std::string_view new_epg_filename,
+                    Playlist& playlist) {
+  if (epgs.empty()) return;
+  LIBXML_TEST_VERSION  // Check for library ABI mismatch
+  std::ofstream new_epg_stream{std::string{new_epg_filename}};
+  new_epg_stream << R"(<?xml version="1.0" encoding="utf-8"?>)" << '\n';
+  new_epg_stream << R"(<!DOCTYPE tv SYSTEM "xmltv.dtd">)" << '\n';
+  new_epg_stream << R"(<tv generator-info-name="pefti">)";
+  //
+  // Filter <channel> nodes
+  for (const auto& epg : epgs) {
+    xmlSAXHandler sax_handler;
+    memset(&sax_handler, 0, sizeof(sax_handler));
+    sax_handler.initialized = XML_SAX2_MAGIC;
+    sax_handler.startElementNs = &SaxFsm::handler_start_element;
+    sax_handler.endElementNs = &SaxFsm::handler_end_element;
+    sax_handler.characters = &SaxFsm::handler_characters;
+    SaxFsm fsm(std::string{SaxFsm::KChannel}, new_epg_stream, playlist);
+    int result = xmlSAXUserParseMemory(&sax_handler, 
+                                       &fsm, 
+                                       epg.c_str(),
+                                       int(epg.size()));
+    if (result != 0)
+      throw std::runtime_error("Failed to parse XML document");
+    xmlCleanupParser();
+  }
+  //
+  // Filter <programme> nodes
+  for (const auto& epg : epgs) {
+    xmlSAXHandler sax_handler;
+    memset(&sax_handler, 0, sizeof(sax_handler));
+    sax_handler.initialized = XML_SAX2_MAGIC;
+    sax_handler.startElementNs = &SaxFsm::handler_start_element;
+    sax_handler.endElementNs = &SaxFsm::handler_end_element;
+    sax_handler.characters = &SaxFsm::handler_characters;
+    SaxFsm fsm(std::string{SaxFsm::kProgramme}, new_epg_stream, playlist);
+    int result = xmlSAXUserParseMemory(&sax_handler, 
+                                       &fsm, 
+                                       epg.c_str(),
+                                       int(epg.size()));
+    if (result != 0)
+      throw std::runtime_error("Failed to parse XML document");
+    xmlCleanupParser();
+  }
+  new_epg_stream << "\n</tv>" << '\n';
+  new_epg_stream.close();
 }
 
 }  // namespace pefti

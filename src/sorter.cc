@@ -1,7 +1,6 @@
 #include "sorter.h"
 
 #include <algorithm>
-#include <iostream>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -45,7 +44,8 @@ void Sorter::mark_duplicates_for_deletion() {
       if (num_instances > (1 + max_num_duplicates)) {
         std::ranges::for_each(
             channel_span.begin() + 1 + max_num_duplicates, channel_span.end(),
-            [](auto&& channel) { channel.set_tag("delete"sv, "yes"s); });
+            [](auto&& channel) 
+              { channel.set_tag(IptvChannel::kTagDelete, "yes"s); });
       }
     }
   }
@@ -75,16 +75,15 @@ void Sorter::move_duplicates() {
 }
 
 void Sorter::remove_quality_tags(Playlist& playlist) {
-  std::ranges::for_each(
-      playlist, [](auto&& channel) { channel.delete_tag("quality"sv); });
+  std::ranges::for_each(playlist, 
+    [](auto&& channel) { channel.delete_tag(IptvChannel::kTagQuality); });
 }
 
 void Sorter::remove_unwanted_duplicate_channels(Playlist& playlist) {
   playlist.erase(std::remove_if(playlist.begin(), playlist.end(),
-                                [](auto&& channel) {
-                                  return channel.contains_tag("delete"sv);
-                                }),
-                 playlist.end());
+      [](auto&& channel) { return channel.contains_tag(
+                           IptvChannel::kTagDelete); }),
+      playlist.end());
 }
 
 // Partitions channels within groups. This must be done after partitioning
@@ -118,8 +117,9 @@ void Sorter::sort_channels_by_quality() {
   for (const auto& group : m_channels_spans) {
     for (const auto& channel_span : group) {
       std::ranges::sort(channel_span, [this](auto&& lhs, auto&& rhs) {
-        return m_qualities_lookup[lhs.get_tag("quality"sv)] <
-               m_qualities_lookup[rhs.get_tag("quality"sv)];
+        auto quality = IptvChannel::kTagQuality;
+        return m_qualities_lookup[*(lhs.get_tag_value(quality))] <
+               m_qualities_lookup[*(rhs.get_tag_value(quality))];
       });
     }
   }
@@ -140,7 +140,8 @@ void Sorter::sort_groups(Playlist& playlist) {
     groups_subrange = std::ranges::stable_partition(
         groups_subrange.begin(), groups_subrange.end(),
         [&group_name](auto&& channel) {
-          return channel.get_tag("group-title") == group_name;
+          auto group_title = IptvChannel::kTagGroupTitle;
+          return *(channel.get_tag_value(group_title)) == group_name;
         });
     std::size_t group_size =
         std::distance(group_begin, groups_subrange.begin());

@@ -1,5 +1,4 @@
-#ifndef PEFTI_CONFIG_H_
-#define PEFTI_CONFIG_H_
+#pragma once
 
 #include <ranges>
 #include <string>
@@ -16,8 +15,8 @@
 
 namespace pefti {
 
-// Class Config converts the configuration data from TOML format to a generic
-// format. By encapsulating TOML within this class we can support other
+// Converts the configuration data from TOML format to a generic format. 
+// By encapsulating TOML within this class we can support different 
 // formats (JSON, YAML, etc) without impacting other modules.
 class Config {
  public:
@@ -49,17 +48,15 @@ class Config {
   const std::vector<IptvChannel::Tag>& get_channel_tags(
       std::string_view channel_original_name);
 
-  // Returns an enum representing the value of [channels].duplicates_location
-  const DuplicatesLocation& get_duplicates_location() noexcept;
-
   // Returns the group names from [channels].allow
   std::span<std::string> get_channels_group_names();
 
-  // Returns the filenames specified in [files].input_playlists
-  const std::vector<std::string>& get_input_playlists_filenames();
+  // Returns an enum representing the value of [channels].duplicates_location
+  const DuplicatesLocation& get_duplicates_location() noexcept;
 
-  // Returns the number of channels in [channels].allow in the configuration
-  // file
+  const std::vector<std::string>& get_epgs_urls() noexcept;
+
+  // Returns number of channels in [channels].allow in configuration file
   int get_num_allowed_channels() { return m_allowed_channels.size(); }
 
   // Returns the number of groups in [groups].allow in the configuration file
@@ -69,12 +66,19 @@ class Config {
   // file
   int get_max_num_duplicates() noexcept;
 
+  // Returns the value of [files].new_epg from the configuration file
+  std::string_view get_new_epg_filename() noexcept;
+
   // Returns the value of [files].new_playlist from the configuration file
   const std::string& get_new_playlist_filename() noexcept;
+
+  // Returns the filenames specified in [files].playlists
+  const std::vector<std::string>& get_playlists_urls();
 
   decltype(auto) get_qualities() {
     return m_qualities | std::ranges::views::all;
   }
+
   bool is_allowed_channel(std::string_view channel_original_name);
   bool is_allowed_group(std::string_view group_name);
   bool is_blocked_channel(std::string_view original_channel_name);
@@ -98,9 +102,11 @@ class Config {
   void convert_blocked_tags();
   void convert_collections();
   void convert_duplicates();
+  void convert_epgs_urls();
   void convert_from_toml();
-  void convert_input_playlist_filenames();
+  void convert_new_epg_filename();
   void convert_new_playlist_filename();
+  void convert_playlists_urls();
   void convert_qualities();
 
   // Returns the data for a channel as specified in [channels].allow.
@@ -112,7 +118,9 @@ class Config {
   toml::table m_config;
   DuplicatesLocation m_duplicates_location;
   int m_max_num_duplicates;
-  std::vector<std::string> m_input_playlists_filenames;
+  std::vector<std::string> m_epgs_urls;
+  std::vector<std::string> m_playlists_urls;
+  std::string m_new_epg_filename;
   std::string m_new_playlist_filename;
   std::unordered_set<std::string> m_blocked_groups;
   std::unordered_set<std::string> m_blocked_channels;
@@ -127,5 +135,3 @@ class Config {
 };
 
 }  // namespace pefti
-
-#endif  // PEFTI_CONFIG_H_

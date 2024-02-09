@@ -1,5 +1,4 @@
-#ifndef PEFTI_APPLICATION_H_
-#define PEFTI_APPLICATION_H_
+#pragma once
 
 #include "config.h"
 #include "filter.h"
@@ -29,5 +28,3 @@ class Application {
 };
 
 }  // namespace pefti
-
-#endif  // PEFTI_APPLICATION_H_

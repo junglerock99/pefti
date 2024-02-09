@@ -1,5 +1,4 @@
-#ifndef PEFTI_TRANSFORMER_H_
-#define PEFTI_TRANSFORMER_H_
+#pragma once
 
 #include <memory>
 #include <vector>
@@ -30,5 +29,3 @@ class Transformer {
 };
 
 }  // namespace pefti
-
-#endif  // PEFTI_TRANSFORMER_H_

@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <ranges>
 #include <regex>
 #include <string>
@@ -12,16 +13,21 @@ namespace pefti {
 
 void get_key_value_pairs(std::string& line, IptvChannel& channel);
 
-bool IptvChannel::contains_tag(std::string_view tag) {
-  return m_tags.contains(std::string{tag});
+bool IptvChannel::contains_tag(std::string_view tag_name) {
+  return m_tags.contains(std::string{tag_name});
 }
 
-void IptvChannel::delete_tag(std::string_view tag) {
-  if (contains_tag(tag)) m_tags.erase(std::string{tag});
+void IptvChannel::delete_tag(std::string_view tag_name) {
+  if (contains_tag(tag_name)) m_tags.erase(std::string{tag_name});
 }
 
-const std::string& IptvChannel::get_tag(std::string_view tag) {
-  return m_tags[std::string{tag}];
+std::optional<std::string> IptvChannel::get_tag_value(
+    std::string_view tag_name) {
+  if (m_tags.contains(std::string{tag_name})) {
+    return make_optional<std::string>(m_tags[std::string{tag_name}]);
+  } else {
+    return std::nullopt;
+  }
 }
 
 void IptvChannel::set_original_name(std::string_view new_name) {

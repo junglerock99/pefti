@@ -1,6 +1,9 @@
-#ifndef PEFTI_PLAYLIST_H_
-#define PEFTI_PLAYLIST_H_
+#pragma once
 
+#include <optional>
+#include <string>
+#include <string_view>
+#include <unordered_set>
 #include <vector>
 
 #include "iptv_channel.h"
@@ -13,6 +16,7 @@ class Playlist {
 
  private:
   std::vector<IptvChannel> m_playlist;
+  std::optional<std::unordered_set<std::string>> m_tvg_id_lookup{};
 
  public:
   Playlist() = default;
@@ -22,13 +26,12 @@ class Playlist {
   decltype(m_playlist.cend()) cend() { return m_playlist.cend(); }
   decltype(m_playlist.end()) end() { return m_playlist.end(); }
   vi erase(vi begin, vi end) { return m_playlist.erase(begin, end); }
+  bool is_tvg_id_in_playlist(std::string_view tvg_id);
   void push_back(IptvChannel channel) { m_playlist.push_back(channel); }
+  decltype(m_playlist.size()) size() { return m_playlist.size(); }
 };
 
-std::vector<std::string> load_playlists(
-  const std::vector<std::string>& filenames);
+std::vector<std::string> load_playlists(const std::vector<std::string>& urls);
 void store_playlist(std::string_view filename, Playlist& playlist);
 
 }  // namespace pefti
-
-#endif  // PEFTI_PLAYLIST_H_
