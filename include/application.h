@@ -9,11 +9,7 @@ namespace pefti {
 
 class Application {
  public:
-  Application()
-      : m_config(std::make_shared<Config>()),
-        m_filter(std::make_unique<Filter>(m_config)),
-        m_transformer(std::make_unique<Transformer>(m_config)),
-        m_sorter(std::make_unique<Sorter>(m_config)) {}
+  Application(int argc, char* argv[]);
   Application(const Application&) = delete;
   Application(const Application&&) = delete;
   void operator=(Application&) = delete;

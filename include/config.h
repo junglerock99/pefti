@@ -13,6 +13,8 @@
 #define TOML_HEADER_ONLY 0
 #include "toml++/toml.hpp"
 
+using namespace std::literals;
+
 namespace pefti {
 
 // Converts the configuration data from TOML format to a generic format. 
@@ -23,7 +25,7 @@ class Config {
   enum class DuplicatesLocation { kNone, kInline, kAppendToGroup };
 
  public:
-  Config();
+  Config(std::string&& filename);
   Config(Config&) = delete;
   Config(Config&&) = delete;
   Config& operator=(Config&) = delete;

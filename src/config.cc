@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <filesystem>
 #include <span>
 #include <string_view>
 #include <unordered_map>
@@ -13,11 +14,26 @@
 
 #include "iptv_channel.h"
 
+namespace fs = std::filesystem;
+
 namespace pefti {
 
-Config::Config() {
+Config::Config(std::string&& filename) {
   try {
-    m_config = toml::parse_file("config.toml");
+    auto status = fs::status(filename);
+    if (!fs::exists(status)) {
+      throw std::runtime_error("Configuration file does not exist");
+    } else if (fs::is_directory(status)) {
+      std::ostringstream stream;
+      stream << filename << " is a directory";
+      throw std::runtime_error(stream.str());
+    } else if (!fs::is_regular_file(status) && 
+        !fs::is_symlink(status)) {
+      std::ostringstream stream;
+      stream << filename << " is not a valid file";
+      throw std::runtime_error(stream.str());
+    }
+    m_config = toml::parse_file(filename);
   } catch (const toml::parse_error& e) {
     std::ostringstream stream;
     stream << e.description() << "(" << e.source().begin << ")";
