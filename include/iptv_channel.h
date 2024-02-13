@@ -12,7 +12,6 @@ using namespace std::string_view_literals;
 namespace pefti {
 
 class IptvChannel {
-
  public:
   static constexpr auto kTagDelete = "delete"sv;
   static constexpr auto kTagGroupTitle = "group-title"sv;

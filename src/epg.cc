@@ -1,14 +1,14 @@
 #include "epg.h"
 
+#include <curl/curl.h>
+#include <curl/mprintf.h>
+
 #include <algorithm>
 #include <exception>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string_view>
-
-#include <curl/curl.h>
-#include <curl/mprintf.h>
 
 #include "resource.h"
 

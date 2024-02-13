@@ -1,8 +1,7 @@
 #include "application.h"
 
-#include <memory>
-
 #include <cxxopts.hpp>
+#include <memory>
 
 #include "config.h"
 #include "epg.h"
@@ -14,9 +13,10 @@
 namespace pefti {
 
 Application::Application(int argc, char* argv[]) {
-  cxxopts::Options options("pefti", "Playlist and EPG Filter/Transformer for IPTV");
-  options.add_options()
-      ("config", "The configuration file", cxxopts::value<std::string>());
+  cxxopts::Options options("pefti",
+                           "Playlist and EPG Filter/Transformer for IPTV");
+  options.add_options()("config", "The configuration file",
+                        cxxopts::value<std::string>());
   options.parse_positional({"config"});
   auto result = options.parse(argc, argv);
   auto config_filename = result["config"].as<std::string>();
@@ -45,8 +45,8 @@ void Application::run() {
   // Process EPGs
   const auto& epg_urls = m_config->get_epgs_urls();
   auto epgs = load_epgs(epg_urls);
-  m_filter->filter(std::move(epgs), m_config->get_new_epg_filename(), 
-    new_playlist);
+  m_filter->filter(std::move(epgs), m_config->get_new_epg_filename(),
+                   new_playlist);
 }
 
 }  // namespace pefti

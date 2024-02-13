@@ -17,8 +17,8 @@ using namespace std::literals;
 
 namespace pefti {
 
-// Converts the configuration data from TOML format to a generic format. 
-// By encapsulating TOML within this class we can support different 
+// Converts the configuration data from TOML format to a generic format.
+// By encapsulating TOML within this class we can support different
 // formats (JSON, YAML, etc) without impacting other modules.
 class Config {
  public:

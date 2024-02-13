@@ -42,10 +42,11 @@ void Sorter::mark_duplicates_for_deletion() {
     for (const auto& channel_span : m_channels_spans[i]) {
       const auto num_instances = std::ranges::distance(channel_span);
       if (num_instances > (1 + max_num_duplicates)) {
-        std::ranges::for_each(
-            channel_span.begin() + 1 + max_num_duplicates, channel_span.end(),
-            [](auto&& channel) 
-              { channel.set_tag(IptvChannel::kTagDelete, "yes"s); });
+        std::ranges::for_each(channel_span.begin() + 1 + max_num_duplicates,
+                              channel_span.end(), [](auto&& channel) {
+                                channel.set_tag(IptvChannel::kTagDelete,
+                                                "yes"s);
+                              });
       }
     }
   }
@@ -75,14 +76,17 @@ void Sorter::move_duplicates() {
 }
 
 void Sorter::remove_quality_tags(Playlist& playlist) {
-  std::ranges::for_each(playlist, 
-    [](auto&& channel) { channel.delete_tag(IptvChannel::kTagQuality); });
+  std::ranges::for_each(playlist, [](auto&& channel) {
+    channel.delete_tag(IptvChannel::kTagQuality);
+  });
 }
 
 void Sorter::remove_unwanted_duplicate_channels(Playlist& playlist) {
-  playlist.erase(std::remove_if(playlist.begin(), playlist.end(),
-      [](auto&& channel) { return channel.contains_tag(
-                           IptvChannel::kTagDelete); }),
+  playlist.erase(
+      std::remove_if(playlist.begin(), playlist.end(),
+                     [](auto&& channel) {
+                       return channel.contains_tag(IptvChannel::kTagDelete);
+                     }),
       playlist.end());
 }
 

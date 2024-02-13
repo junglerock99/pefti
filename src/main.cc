@@ -1,7 +1,6 @@
+#include <cxxopts.hpp>
 #include <exception>
 #include <iostream>
-
-#include <cxxopts.hpp>
 
 #include "application.h"
 #include "version.h"
@@ -19,10 +18,10 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   try {
-    cxxopts::Options options("pefti", "Playlist and EPG Filter/Transformer for IPTV");
-    options.add_options()
-      ("h,help", "Print usage")
-      ("v,version", "Print version");
+    cxxopts::Options options("pefti",
+                             "Playlist and EPG Filter/Transformer for IPTV");
+    options.add_options()("h,help", "Print usage")("v,version",
+                                                   "Print version");
     auto result = options.parse(argc, argv);
     if (result.count("help")) {
       print_help();
@@ -42,14 +41,12 @@ int main(int argc, char* argv[]) {
 static void print_help() {
   std::cout << "Usage: pefti [OPTION]... [--] config-file\n";
   std::cout << "  -h, --help              display this help text and exit\n";
-  std::cout << 
-      "  -v, --version           display version information and exit\n";
+  std::cout
+      << "  -v, --version           display version information and exit\n";
   std::cout << "Full documentation <https://github.com/junglerock99/pefti>\n";
 }
 
 static void print_version() {
-  std::cout << "pefti " << kVersionMajor << '.' << 
-                           kVersionMinor << '.' << 
-                           kVersionPatch << '\n';
+  std::cout << "pefti " << kVersionMajor << '.' << kVersionMinor << '.'
+            << kVersionPatch << '\n';
 }
-

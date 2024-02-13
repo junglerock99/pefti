@@ -1,14 +1,14 @@
 #include "playlist.h"
 
-#include <iostream>
+#include <curl/curl.h>
+#include <curl/mprintf.h>
+
 #include <fstream>
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
-
-#include <curl/curl.h>
-#include <curl/mprintf.h>
 
 #include "resource.h"
 
@@ -22,8 +22,7 @@ bool Playlist::is_tvg_id_in_playlist(std::string_view tvg_id) {
     m_tvg_id_lookup = std::make_optional<std::unordered_set<std::string>>();
     for (auto& channel : m_playlist) {
       const auto value = channel.get_tag_value(IptvChannel::kTagTvgId);
-      if (value && (*value != ""))
-        m_tvg_id_lookup->insert(*value);
+      if (value && (*value != "")) m_tvg_id_lookup->insert(*value);
     }
   }
   return m_tvg_id_lookup->contains(std::string{tvg_id});
