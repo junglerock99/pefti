@@ -20,69 +20,6 @@ For EPGs, *pefti* assumes that the link to the playlist is in the `channel` tag:
 <programme start="20240208090000 -0500" stop="20240208100000 -0500" channel="NASATV">
 ```
 
-## How It Works
-
-The diagram below shows how channels in the playlists are filtered to create a new playlist. There are two phases of filtering: 1) blocking and 2) allowing.
-
-### Filters
-
-#### Block Group
-
-The channel will be discarded if its `group-title` tag matches any of the entries in `[groups] block` in the configuration.
-
-#### Block Channel
-
-The channel will be discarded if its name contains any of the entries in `[channels] block` in the configuration.
-
-#### Block URL
-
-The channel will be discarded if its URL matches any of the entries in `[urls] block` in the configuration.
-
-#### Allow All
-
-The channel will be added to the new playlist if both `[groups] allow` and `[channels] allow` in the configuration are empty.
-
-#### Allow Group
-
-The channel will be added to the new playlist if its `group-title` tag matches any of the entries in `[groups] allow` in the configuration.
-
-#### Allow Channel
-
-The channel will be added to the new playlist if it matches any of the entries in `[channels] allow` in the configuration. It is a match if the channel name contains all of the entries in an `allow` array and none of the entries in the corresponding `block` array.
-
-```mermaid
-graph TD;
-    P1[Playlist 1];
-    Pn[Playlist n];
-    B1{Block Group?};
-    B2{Block Channel?};
-    B3{Block URL?};
-    BD[[Discard]];
-    A1{Allow All?};
-    A2{Allow Group?};
-    A3{Allow Channel?};
-    AD[[Discard]];
-    NP[New Playlist];
-    P1-->B1
-    Pn-->B1
-    subgraph allow [Allow]
-    A1-- No -->A2;
-    A2-- No -->A3;
-    A3-- No -->AD;
-    end
-    subgraph block [Block]
-    B1-- Yes -->BD;
-    B2-- Yes -->BD;
-    B3-- Yes -->BD;
-    B1-- No -->B2;
-    B2-- No -->B3;
-    end
-    B3-- No -->A1;
-    A1 -- Yes -->NP;
-    A2 -- Yes -->NP;
-    A3 -- Yes -->NP;
-```
-
 ## Build
 
 *pefti* requires CMake 3.14 or greater for building. Building *pefti* from source code follows the typical CMake process:
@@ -98,7 +35,10 @@ External packages required for building are libcurl, libxml2 and openssl.
 
 ## Usage
 
-*pefti* runs from the command-line. Before running *pefti*, a configuration file must be created. The configuration file must be named `pefti.toml` and be stored in the same directory as the *pefti* executable. TOML format is used for the configuration, the full TOML specification is at https://toml.io, but it may be easiest to copy one of the  example configurations to get started.
+Before running *pefti*, a configuration file must be created. TOML format is used for the configuration, the full TOML specification is at https://toml.io, but it may be easiest to copy and modify one of the example configurations below to get started. The name of the configuration file is specified on the command-line:
+```
+> pefti /home/user/config.toml
+```
 
 ## Example Configurations
 
@@ -183,6 +123,69 @@ allow = [
 ]
 ```
 
+## How It Works
+
+The diagram below shows how channels in the playlists are filtered to create a new playlist. There are two phases of filtering: 1) blocking channels and 2) allowing channels.
+
+### Filters
+
+#### Block Group
+
+The channel will be discarded if its `group-title` tag matches any of the entries in `[groups] block` in the configuration.
+
+#### Block Channel
+
+The channel will be discarded if its name contains any of the entries in `[channels] block` in the configuration.
+
+#### Block URL
+
+The channel will be discarded if its URL matches any of the entries in `[urls] block` in the configuration.
+
+#### Allow All
+
+The channel will be added to the new playlist if both `[groups] allow` and `[channels] allow` in the configuration are empty.
+
+#### Allow Group
+
+The channel will be added to the new playlist if its `group-title` tag matches any of the entries in `[groups] allow` in the configuration.
+
+#### Allow Channel
+
+The channel will be added to the new playlist if it matches any of the entries in `[channels] allow` in the configuration. It is a match if the channel name contains all of the entries in an `allow` array and none of the entries in the corresponding `block` array.
+
+```mermaid
+graph TD;
+    P1[Playlist 1];
+    Pn[Playlist n];
+    B1{Block Group?};
+    B2{Block Channel?};
+    B3{Block URL?};
+    BD[[Discard]];
+    A1{Allow All?};
+    A2{Allow Group?};
+    A3{Allow Channel?};
+    AD[[Discard]];
+    NP[New Playlist];
+    P1-->B1
+    Pn-->B1
+    subgraph allow [Allow]
+    A1-- No -->A2;
+    A2-- No -->A3;
+    A3-- No -->AD;
+    end
+    subgraph block [Block]
+    B1-- Yes -->BD;
+    B2-- Yes -->BD;
+    B3-- Yes -->BD;
+    B1-- No -->B2;
+    B2-- No -->B3;
+    end
+    B3-- No -->A1;
+    A1 -- Yes -->NP;
+    A2 -- Yes -->NP;
+    A3 -- Yes -->NP;
+```
+
 ## Configuration Options
 
 The section describes the configuration options used by *pefti*.
@@ -221,3 +224,4 @@ allow | Array | Contains repeating group-name, allowed channels, group-name, all
 ## Source Code
 
 *pefti* is written in C++20 and follows the [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html) except that it uses exceptions.
+

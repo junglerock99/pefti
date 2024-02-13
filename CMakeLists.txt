@@ -29,9 +29,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # TODO: add macOS-specific flags 
 endif()
 
-#
 # External Packages
-#
 
 find_package(LibXml2 REQUIRED)
 find_package(OpenSSL REQUIRED)
@@ -46,9 +44,16 @@ FetchContent_MakeAvailable(tomlplusplus)
 include_directories(${tomlplusplus_SOURCE_DIR}/include)
 
 FetchContent_Declare(curl
-  URL https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.zip)
+    URL https://github.com/curl/curl/releases/download/curl-8_5_0/curl-8.5.0.zip)
 FetchContent_MakeAvailable(curl)
 include_directories(${curl_SOURCE_DIR}/include)
+
+FetchContent_Declare(
+    cxxopts
+    GIT_REPOSITORY https://github.com/jarro2783/cxxopts.git
+    GIT_TAG v3.1.1)
+FetchContent_MakeAvailable(cxxopts)
+include_directories(${cxxopts_SOURCE_DIR}/include)
 
 target_include_directories (${PROJECT_NAME} PRIVATE ${LIBXML2_INCLUDE_DIR})
 target_link_libraries (${PROJECT_NAME} PRIVATE ${LIBXML2_LIBRARIES} libcurl)
