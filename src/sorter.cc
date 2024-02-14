@@ -75,21 +75,6 @@ void Sorter::move_duplicates() {
   }
 }
 
-void Sorter::remove_quality_tags(Playlist& playlist) {
-  std::ranges::for_each(playlist, [](auto&& channel) {
-    channel.delete_tag(IptvChannel::kTagQuality);
-  });
-}
-
-void Sorter::remove_unwanted_duplicate_channels(Playlist& playlist) {
-  playlist.erase(
-      std::remove_if(playlist.begin(), playlist.end(),
-                     [](auto&& channel) {
-                       return channel.contains_tag(IptvChannel::kTagDelete);
-                     }),
-      playlist.end());
-}
-
 // Partitions channels within groups. This must be done after partitioning
 // groups. Saves channels subranges data for future sorting.
 void Sorter::partition_channels() {
@@ -112,6 +97,38 @@ void Sorter::partition_channels() {
   }
 }
 
+void Sorter::remove_quality_tags(Playlist& playlist) {
+  std::ranges::for_each(playlist, [](auto&& channel) {
+    channel.delete_tag(IptvChannel::kTagQuality);
+  });
+}
+
+// When there are multiple instances of the same channel,
+// remove the `tvg-id` tag from duplicate instances.
+// This prevents the media player from displaying
+// the same EPG data multiple times.
+void Sorter::remove_tvgid_from_duplicates() {
+  for (std::size_t i{}; i < m_groups_spans.size(); ++i) {
+    for (const auto& channel_span : m_channels_spans[i]) {
+      const auto num_instances = std::ranges::distance(channel_span);
+      if (num_instances > 1) {
+        std::ranges::for_each(
+            channel_span.begin() + 1, channel_span.end(),
+            [](auto&& channel) { channel.delete_tag(IptvChannel::kTagTvgId); });
+      }
+    }
+  }
+}
+
+void Sorter::remove_unwanted_duplicate_channels(Playlist& playlist) {
+  playlist.erase(
+      std::remove_if(playlist.begin(), playlist.end(),
+                     [](auto&& channel) {
+                       return channel.contains_tag(IptvChannel::kTagDelete);
+                     }),
+      playlist.end());
+}
+
 void Sorter::sort_channels() {
   partition_channels();
   sort_channels_by_quality();
@@ -131,6 +148,7 @@ void Sorter::sort_channels_by_quality() {
 
 void Sorter::sort_duplicates() {
   mark_duplicates_for_deletion();
+  remove_tvgid_from_duplicates();
   move_duplicates();
 }
 

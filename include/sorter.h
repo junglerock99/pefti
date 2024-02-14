@@ -25,6 +25,7 @@ class Sorter {
   void move_duplicates();
   void partition_channels();
   void remove_quality_tags(Playlist& playlist);
+  void remove_tvgid_from_duplicates();
   void remove_unwanted_duplicate_channels(Playlist& playlist);
   void sort_channels();
   void sort_channels_by_quality();
