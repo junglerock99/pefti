@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include "epg.h"
+#include "iptv_channel.h"
 #include "playlist.h"
 
 namespace pefti {
@@ -15,7 +16,7 @@ namespace pefti {
 // Application logic for filtering playlists and EPGs
 class Filter {
  public:
-  Filter(std::shared_ptr<Config> config) : m_config(config) {}
+  explicit Filter(std::shared_ptr<Config> config) : m_config(config) {}
   Filter(Filter&) = delete;
   Filter(Filter&&) = delete;
   Filter& operator=(Filter&) = delete;

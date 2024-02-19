@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <exception>
 #include <filesystem>
+#include <gsl/gsl>
 #include <span>
 #include <string_view>
 #include <unordered_map>
@@ -14,6 +15,7 @@
 
 #include "iptv_channel.h"
 
+using namespace std::literals;
 namespace fs = std::filesystem;
 
 namespace pefti {
@@ -22,20 +24,20 @@ Config::Config(std::string&& filename) {
   try {
     auto status = fs::status(filename);
     if (!fs::exists(status)) {
-      throw std::runtime_error("Configuration file does not exist");
+      throw std::runtime_error("Configuration file does not exist"s);
     } else if (fs::is_directory(status)) {
       std::ostringstream stream;
-      stream << filename << " is a directory";
+      stream << filename << " is a directory"s;
       throw std::runtime_error(stream.str());
     } else if (!fs::is_regular_file(status) && !fs::is_symlink(status)) {
       std::ostringstream stream;
-      stream << filename << " is not a valid file";
+      stream << filename << " is not a valid file"s;
       throw std::runtime_error(stream.str());
     }
     m_config = toml::parse_file(filename);
   } catch (const toml::parse_error& e) {
     std::ostringstream stream;
-    stream << e.description() << "(" << e.source().begin << ")";
+    stream << e.description() << '(' << e.source().begin << ')';
     throw std::runtime_error(stream.str());
   }
   convert_from_toml();
@@ -179,27 +181,27 @@ void Config::convert_allowed_channel_tags(toml::v3::table& tags,
     std::string key = std::string{toml_key};
     if (key == "allow") {
       if (!(toml_value.is_array()))
-        throw std::runtime_error("[channels]allow: expected array");
+        throw std::runtime_error("[channels]allow: expected array"s);
       auto array = toml_value.as_array();
       for (auto iter = array->cbegin(); iter != array->cend(); ++iter) {
         if (!((*iter).is_string()))
-          throw std::runtime_error("[channels]allow: expected text string");
+          throw std::runtime_error("[channels]allow: expected text string"s);
         channel.allow.push_back(std::string{**((*iter).as_string())});
       }
     } else if (key == "block") {
       auto array{toml_value.as_array()};
       for (auto iter = array->cbegin(); iter != array->cend(); ++iter) {
         if (!((*iter).is_string()))
-          throw std::runtime_error("[channels]allow: expected text string");
+          throw std::runtime_error("[channels]allow: expected text string"s);
         channel.block.push_back(std::string{**((*iter).as_string())});
       }
     } else if (key == "rename") {
       if (!(toml_value.is_string()))
-        throw std::runtime_error("[channels]allow: expected text string");
+        throw std::runtime_error("[channels]allow: expected text string"s);
       channel.new_name = std::string{*(toml_value.as_string())};
     } else if (key == "tags") {
       if (!(toml_value.is_table()))
-        throw std::runtime_error("[channels]allow: expected table");
+        throw std::runtime_error("[channels]allow: expected table"s);
       auto table(toml_value.as_table());
       table->for_each(
           [this, &channel](const toml::key& toml_key, auto&& toml_value) {
@@ -207,15 +209,16 @@ void Config::convert_allowed_channel_tags(toml::v3::table& tags,
                 std::string{toml_key}, std::string{*(toml_value.as_string())}));
           });
     } else
-      throw std::runtime_error("[channels]allow: invalid key");
+      throw std::runtime_error("[channels]allow: invalid key"s);
   });
 }
 
 void Config::convert_allowed_channels() {
+  Expects(m_group_names.empty());
   if (!m_config["channels"]["allow"]) return;
   auto node = m_config["channels"]["allow"];
   if (!node.is_array())
-    throw std::runtime_error("[channels]allow: expected array");
+    throw std::runtime_error("[channels]allow: expected array"s);
   auto array = node.as_array();
   enum class ElementType { kGroupName, kChannels };
   ElementType element_type{ElementType::kGroupName};
@@ -224,7 +227,7 @@ void Config::convert_allowed_channels() {
     switch (element_type) {
       case ElementType::kGroupName: {
         if (!((*iter).is_string()))
-          throw std::runtime_error("[channels]allow: expected text string");
+          throw std::runtime_error("[channels]allow: expected text string"s);
         group_name = **((*iter).as_string());
         m_group_names.push_back(group_name);
         break;
@@ -232,11 +235,12 @@ void Config::convert_allowed_channels() {
       case ElementType::kChannels: {
         auto size_before = m_allowed_channels.size();
         if (!((*iter).is_array_of_tables()))
-          throw std::runtime_error("[channels]allow: expected array of tables");
+          throw std::runtime_error(
+              "[channels]allow: expected array of tables"s);
         const auto channels = (*iter).as_array();
         channels->for_each([this, &group_name](auto&& toml_channel) {
           if (!(toml_channel.is_table()))
-            throw std::runtime_error("[channels]allow: expected table");
+            throw std::runtime_error("[channels]allow: expected table"s);
           auto table = *(toml_channel.as_table());
           AllowedChannel channel{};
           convert_allowed_channel_tags(table, channel);
@@ -268,7 +272,7 @@ void convert_collection(toml::v3::node_view<toml::v3::node> node,
     auto array = items.as_array();
     for (auto iter = array->cbegin(); iter != array->cend(); ++iter) {
       if (!((*iter).is_string()))
-        throw std::runtime_error("Invalid configuration");
+        throw std::runtime_error("Invalid configuration"s);
       if constexpr (std::is_same_v<decltype(collection),
                                    std::vector<std::string>&>)
         collection.push_back(**((*iter).as_string()));
@@ -276,10 +280,10 @@ void convert_collection(toml::v3::node_view<toml::v3::node> node,
                                         std::unordered_set<std::string>&>)
         collection.insert(**((*iter).as_string()));
       else
-        throw std::runtime_error("Type missing from convert_collection()");
+        throw std::runtime_error("Type missing from convert_collection()"s);
     }
   } else
-    throw std::runtime_error("Invalid configuration");
+    throw std::runtime_error("Invalid configuration"s);
 }
 
 void Config::convert_collections() {
@@ -308,11 +312,10 @@ void Config::convert_duplicates() {
       m_duplicates_location = kAppendToGroup;
     else
       m_duplicates_location = kNone;
-    if (m_duplicates_location == kNone)
-      m_max_num_duplicates = 0;
-    else
-      m_max_num_duplicates =
-          m_config["channels"]["number_of_duplicates"].as_integer()->get();
+    m_max_num_duplicates =
+        (m_duplicates_location == kNone)
+            ? 0
+            : m_config["channels"]["number_of_duplicates"].as_integer()->get();
   } else {
     m_duplicates_location = kNone;
     m_max_num_duplicates = 0;
@@ -320,17 +323,19 @@ void Config::convert_duplicates() {
 }
 
 void Config::convert_epgs_urls() {
+  Expects(m_epgs_urls.empty());
   if (!m_config["resources"]["epgs"]) return;
   auto epgs = m_config["resources"]["epgs"];
   if (!epgs.is_array())
-    throw std::runtime_error("[files]epgs: expected an array");
+    throw std::runtime_error("[files]epgs: expected an array"s);
   auto array = epgs.as_array();
   for (auto iter = array->cbegin(); iter != array->cend(); iter++) {
     if (!((*iter).is_string()))
       throw std::runtime_error(
-          "[files]epgs: array should contain text strings");
+          "[files]epgs: array should contain text strings"s);
     m_epgs_urls.push_back(**((*iter).as_string()));
   }
+  Expects(!m_epgs_urls.empty());
 }
 
 // Converts all configuration settings from TOML to a generic format
@@ -345,36 +350,42 @@ void Config::convert_from_toml() {
 }
 
 void Config::convert_new_epg_filename() {
+  Expects(m_new_epg_filename.empty());
   if (!m_config["resources"]["new_epg"]) return;
   auto new_epg{m_config["resources"]["new_epg"]};
   if (!new_epg.is_string())
-    throw std::runtime_error("[files]new_epg: expected a text string");
+    throw std::runtime_error("[files]new_epg: expected a text string"s);
   m_new_epg_filename = m_config["resources"]["new_epg"].as_string()->get();
+  Ensures(!m_new_epg_filename.empty());
 }
 
 void Config::convert_new_playlist_filename() {
+  Expects(m_new_playlist_filename.empty());
   if (!m_config["resources"]["new_playlist"])
     throw std::runtime_error("[files]new_playlist: missing");
   auto new_playlist{m_config["resources"]["new_playlist"]};
   if (!new_playlist.is_string())
-    throw std::runtime_error("[files]new_playlist: expected a text string");
+    throw std::runtime_error("[files]new_playlist: expected a text string"s);
   m_new_playlist_filename =
       m_config["resources"]["new_playlist"].as_string()->get();
+  Ensures(!m_new_playlist_filename.empty());
 }
 
 void Config::convert_playlists_urls() {
+  Expects(m_playlists_urls.empty());
   if (!m_config["resources"]["playlists"])
-    throw std::runtime_error("[files]playlists: missing");
+    throw std::runtime_error("[files]playlists: missing"s);
   auto playlists = m_config["resources"]["playlists"];
   if (!playlists.is_array())
-    throw std::runtime_error("[files]playlists: expected an array");
+    throw std::runtime_error("[files]playlists: expected an array"s);
   auto array = playlists.as_array();
   for (auto iter = array->cbegin(); iter != array->cend(); iter++) {
     if (!((*iter).is_string()))
       throw std::runtime_error(
-          "[files]playlists: array should contain text strings");
+          "[files]playlists: array should contain text strings"s);
     m_playlists_urls.push_back(**((*iter).as_string()));
   }
+  Ensures(!m_playlists_urls.empty());
 }
 
 const Config::AllowedChannel& Config::get_allowed_channel(

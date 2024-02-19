@@ -20,10 +20,11 @@ class Playlist {
 
  public:
   Playlist() = default;
-  Playlist(int size) { m_playlist.reserve(size); }
+  explicit Playlist(int size) { m_playlist.reserve(size); }
   decltype(m_playlist.begin()) begin() { return m_playlist.begin(); }
   decltype(m_playlist.cbegin()) cbegin() { return m_playlist.cbegin(); }
   decltype(m_playlist.cend()) cend() { return m_playlist.cend(); }
+  decltype(m_playlist.empty()) empty() { return m_playlist.empty(); }
   decltype(m_playlist.end()) end() { return m_playlist.end(); }
   vi erase(vi begin, vi end) { return m_playlist.erase(begin, end); }
   bool is_tvg_id_in_playlist(std::string_view tvg_id);

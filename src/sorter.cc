@@ -1,6 +1,7 @@
 #include "sorter.h"
 
 #include <algorithm>
+#include <gsl/gsl>
 #include <memory>
 #include <ranges>
 #include <span>
@@ -22,7 +23,7 @@ void Sorter::sort(Playlist& playlist) {
   sort_groups(playlist, g_spans);
   GroupedChannelSpans gc_spans;
   sort_channels(g_spans, gc_spans);
-  sort_duplicates(g_spans, gc_spans);
+  sort_duplicates(g_spans, std::move(gc_spans));
   remove_unwanted_duplicate_channels(playlist);
   remove_quality_tags(playlist);
 }
@@ -35,17 +36,18 @@ std::unordered_map<std::string, int> Sorter::get_qualities_priorities_map() {
   const auto qualities = m_config->get_qualities();
   for (const auto& quality : qualities) map[quality] = i++;
   map[""s] = i;
+  Ensures(map.size() == (qualities.size() + 1));
   return map;
 }
 
 // When there are multiple instances of the same channel, the
 // `number_of_duplicates` configuration setting determines how many instances
 // are copied to the new playlist. Add a kTagDelete tag to extra duplicate
-// channels so that they can be deleted later.
+// channels so that they can be found and deleted later.
 void Sorter::mark_duplicates_for_deletion(GroupedChannelSpans& gc_spans) {
   const auto max_num_duplicates = m_config->get_max_num_duplicates();
-  for (std::size_t i{}; i < gc_spans.size(); ++i) {
-    for (const auto& channel_span : gc_spans[i]) {
+  for (const auto& channel_spans : gc_spans) {
+    for (const auto& channel_span : channel_spans) {
       const auto num_instances = std::ranges::distance(channel_span);
       if (num_instances > (1 + max_num_duplicates)) {
         std::ranges::for_each(channel_span.begin() + 1 + max_num_duplicates,
@@ -88,11 +90,12 @@ void Sorter::partition_channels(GroupSpans& g_spans,
                                 GroupedChannelSpans& gc_spans) {
   const auto group_names = m_config->get_channels_group_names();
   gc_spans.reserve(group_names.size());
-  for (std::size_t i{}; i < group_names.size(); ++i) {
+  auto spans = g_spans.begin();
+  for (auto names = group_names.begin(); names != group_names.end();
+       names++, spans++) {
+    auto channels_subrange = *spans;
+    const auto channel_names = m_config->get_channel_names_in_group(*names);
     ChannelSpans channel_spans;
-    auto channels_subrange = g_spans[i];
-    const auto channel_names =
-        m_config->get_channel_names_in_group(group_names[i]);
     for (const auto& channel_name : channel_names) {
       const auto channel_start = channels_subrange.begin();
       channels_subrange = std::ranges::partition(
@@ -117,8 +120,8 @@ void Sorter::remove_quality_tags(Playlist& playlist) noexcept {
 // This reduces the size of the EPG file and should prevent the
 // media player from displaying the same EPG data multiple times.
 void Sorter::remove_tvgid_from_duplicates(GroupedChannelSpans& gc_spans) {
-  for (std::size_t i{}; i < gc_spans.size(); ++i) {
-    for (const auto& channel_span : gc_spans[i]) {
+  for (const auto& channel_spans : gc_spans) {
+    for (const auto& channel_span : channel_spans) {
       const auto num_instances = std::ranges::distance(channel_span);
       if (num_instances > 1) {
         std::ranges::for_each(
@@ -156,7 +159,7 @@ void Sorter::sort_channels_by_quality(GroupedChannelSpans& gc_spans) {
 }
 
 void Sorter::sort_duplicates(GroupSpans& g_spans,
-                             GroupedChannelSpans& gc_spans) {
+                             GroupedChannelSpans&& gc_spans) {
   mark_duplicates_for_deletion(gc_spans);
   remove_tvgid_from_duplicates(gc_spans);
   move_duplicates(g_spans, gc_spans);

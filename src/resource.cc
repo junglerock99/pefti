@@ -1,17 +1,17 @@
 #include "resource.h"
 
+#include <curl/curl.h>
+#include <curl/mprintf.h>
+
 #include <algorithm>
 #include <exception>
 #include <fstream>
 #include <functional>
+#include <gsl/gsl>
 #include <memory>
 #include <ranges>
 #include <sstream>
 #include <string_view>
-
-// Using libcurl to download resources
-#include <curl/curl.h>
-#include <curl/mprintf.h>
 
 namespace pefti {
 
@@ -29,11 +29,12 @@ class CurlGlobalStateGuard {
 };
 static CurlGlobalStateGuard handle_curl_state;
 
-// Loads multiple resources, returns each resource in a std::string.
+// Loads multiple resources, returns each resource in a std::string
 std::vector<std::string> load_resources(const std::vector<std::string>& urls) {
   std::vector<std::string> resources(urls.size());
   for (std::size_t i{}; i < urls.size(); i++)
     load_resource(urls[i], resources[i]);
+  Ensures(resources.size() == urls.size());
   return resources;
 }
 

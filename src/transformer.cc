@@ -21,8 +21,8 @@ void Transformer::transform(Playlist& playlist) {
   }
 }
 
-// Sets a channel's name so that it appears in the new playlist with the name
-// specified in the configuration instead of the original name from the
+// Sets each channel's name so that it appears in the new playlist with the
+// name specified in the configuration instead of the original name from the
 // old playlist.
 void Transformer::set_name(Playlist& playlist) {
   auto set_name = [this](auto&& channel) {
@@ -34,7 +34,7 @@ void Transformer::set_name(Playlist& playlist) {
                 set_name);
 }
 
-// Determines the quality for a channel by comparing the channel's name with
+// Determines the quality for eacj channel by comparing the channel's name with
 // the quality text strings specified in the configuration. Creates a new tag
 // containing the quality which will be used for sorting and then deleted after
 // sorting.
@@ -55,7 +55,7 @@ void Transformer::set_quality(Playlist& playlist) {
                 set_quality);
 }
 
-// Copies the tags for a channel from the configuration to the new playlist
+// Copies the tags for eacj channel from the configuration to the new playlist
 void Transformer::set_tags(Playlist& playlist) {
   auto set_tags = [this](auto&& channel) {
     if (m_config->is_allowed_channel(channel.get_original_name()))

@@ -55,5 +55,14 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(cxxopts)
 include_directories(${cxxopts_SOURCE_DIR}/include)
 
+FetchContent_Declare(GSL
+    GIT_REPOSITORY "https://github.com/microsoft/GSL"
+    GIT_TAG "v4.0.0"
+    GIT_SHALLOW ON
+)
+FetchContent_MakeAvailable(GSL)
+
 target_include_directories (${PROJECT_NAME} PRIVATE ${LIBXML2_INCLUDE_DIR})
 target_link_libraries (${PROJECT_NAME} PRIVATE ${LIBXML2_LIBRARIES} libcurl)
+target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft.GSL::GSL)
+

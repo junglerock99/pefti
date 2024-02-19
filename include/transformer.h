@@ -11,7 +11,7 @@ namespace pefti {
 // Contains the application logic for transforming a playlist.
 class Transformer {
  public:
-  Transformer(std::shared_ptr<Config> config) : m_config(config) {}
+  explicit Transformer(std::shared_ptr<Config> config) : m_config(config) {}
   ~Transformer() = default;
   Transformer(Transformer&) = delete;
   Transformer(Transformer&&) = delete;

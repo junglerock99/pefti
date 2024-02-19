@@ -91,9 +91,8 @@ std::istream& operator>>(std::istream& stream, IptvChannel& channel) {
 // Writes a channel to the output stream
 std::ostream& operator<<(std::ostream& stream, IptvChannel& channel) {
   std::string line("#EXTINF:-1");
-  for (auto iter = channel.m_tags.cbegin(); iter != channel.m_tags.cend();
-       ++iter) {
-    line += ' ' + iter->first + "=\"" + iter->second + '"';
+  for (const auto& tag : channel.m_tags) {
+    line += ' ' + tag.first + "=\"" + tag.second + '"';
   }
   line += ',';
   line += channel.m_new_name;
@@ -105,23 +104,26 @@ std::ostream& operator<<(std::ostream& stream, IptvChannel& channel) {
 
 // Parses key=value pairs and adds them to the channel
 void get_key_value_pairs(std::string& line, IptvChannel& channel) {
-  std::regex kv_pattern{R"(([\w\-]*=\"[\w\-: \/\.]*\"))"};
+  std::regex kv_pattern{R"(([\w\-]*=\"[\w\-: \/\.]*\"))"s};
   std::sregex_iterator kv_iterator{line.cbegin() + 7, line.cend(), kv_pattern};
   std::sregex_iterator kv_end;
   while (kv_iterator != kv_end) {
-    std::string kv_pair{(*kv_iterator)[0]};
+    std::string kv_pair = (*kv_iterator)[0];
     auto pos = kv_pair.find("=");
-    if ((pos > 0) && (pos != std::string::npos)) {
-      auto key{kv_pair.substr(0, pos)};
-      auto length{kv_pair.length()};
-      // Check for empty value
+    const bool have_key_value_pair = ((pos > 0) && (pos != std::string::npos));
+    if (have_key_value_pair) {
+      auto key = kv_pair.substr(0, pos);
+      auto length = kv_pair.length();
       std::string value;
-      if (kv_pair[pos + 1] == '"' && kv_pair[pos + 2] == '"')
+      const bool is_empty_value =
+          (kv_pair[pos + 1] == '"' && kv_pair[pos + 2] == '"');
+      if (is_empty_value)
         value = "";
-      else
+      else {
         value = kv_pair.substr(
             kv_pair[pos + 1] == '"' ? pos + 2 : pos + 1,
             kv_pair[length - 1] == '"' ? length - pos - 3 : length - pos - 2);
+      }
       channel.set_tag(key, value);
     }
     ++kv_iterator;

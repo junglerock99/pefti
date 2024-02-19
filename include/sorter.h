@@ -14,7 +14,7 @@ namespace pefti {
 // Contains the application logic for sorting a playlist
 class Sorter {
  public:
-  Sorter(std::shared_ptr<Config> config);
+  explicit Sorter(std::shared_ptr<Config> config);
   Sorter(Sorter&) = delete;
   Sorter(Sorter&&) = delete;
   Sorter& operator=(Sorter&) = delete;
@@ -38,7 +38,7 @@ class Sorter {
   void remove_unwanted_duplicate_channels(Playlist& playlist);
   void sort_channels(GroupSpans& g_spans, GroupedChannelSpans& gc_spans);
   void sort_channels_by_quality(GroupedChannelSpans& gc_spans);
-  void sort_duplicates(GroupSpans& g_spans, GroupedChannelSpans& gc_spans);
+  void sort_duplicates(GroupSpans& g_spans, GroupedChannelSpans&& gc_spans);
   void sort_groups(Playlist& playlist, GroupSpans& g_spans);
 
  private:

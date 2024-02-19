@@ -15,8 +15,8 @@ SaxFsm::SaxFsm(std::string_view parent_node, std::ofstream& stream,
                Playlist& playlist)
     : m_parent_node(parent_node), m_stream(stream), m_playlist(playlist) {}
 
-// SAX2 handler when an element start has been detected by the parser.
-// It provides the namespace informations for the element,
+// SAX2 handler for when an element start has been detected by the parser.
+// It provides the namespace information for the element,
 // as well as the new namespace declarations on the element.
 // context: The user data (XML parser context)
 // localname: The local name of the element
@@ -28,7 +28,7 @@ SaxFsm::SaxFsm(std::string_view parent_node, std::ofstream& stream,
 // nb_defaulted: The number of defaulted attributes.
 //               The defaulted ones are at the end of the array.
 // attributes: pointer to the array of (localname/prefix/URI/value/end)
-//   attribute values.
+//             attribute values.
 void SaxFsm::handler_start_element(void* context, const xmlChar* local_name,
                                    const xmlChar*, const xmlChar*, int,
                                    const xmlChar**, int num_attributes, int,
@@ -132,24 +132,3 @@ std::string SaxFsm::get_attribute_value(std::string_view attribute_name,
 }
 
 }  // namespace pefti
-
-/*
-<?xml version="1.0" encoding="utf-8"?>)" << '\n';
-<!DOCTYPE tv SYSTEM "xmltv.dtd">)" << '\n';
-<tv generator-info-name="pefti">
-  <channel id="BBC One HD">
-    <display-name lang="en">BBC One HD</display-name>
-    <icon
-src="https://d2n0069hmnqmmx.cloudfront.net/epgdata/1.0/newchanlogos/320/320/skychb2076.png"
-/> <url>http://www.tv.sky.com</url>
-  </channel>
-  <programme start="20240131001500 +0000" stop="20240131004500 +0000"
-channel="BBC One HD"> <title lang="en">Celebrity Mastermind</title> <desc
-lang="en">9/14. Clive Myrie asks the questions as Jonathan Agnew, YolanDa Brown,
-Davood Ghadami and Jessica Knappett go under the spotlight in the celebrity
-version of the classic quiz. [S] [HD.</desc> <category
-lang="en">10009</category> <rating system="UK"> <value>--</value>
-    </rating>
-  </programme>
-</tv>
-*/

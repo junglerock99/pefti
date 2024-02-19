@@ -25,7 +25,7 @@ class Config {
   enum class DuplicatesLocation { kNone, kInline, kAppendToGroup };
 
  public:
-  Config(std::string&& filename);
+  explicit Config(std::string&& filename);
   Config(Config&) = delete;
   Config(Config&&) = delete;
   Config& operator=(Config&) = delete;
