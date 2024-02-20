@@ -5,54 +5,57 @@
 #include "application.h"
 #include "version.h"
 
-enum class Status { kOk, kError };
+enum class AppStatus { kOk, kError, kFinished };
 
-static void print_help();
+static void print_usage();
 static void print_version();
-static Status process_command_line(int argc, char* argv[]);
+static AppStatus process_arguments(int argc, char* argv[]);
 
 // Creates and runs the application.
 // All exceptions are handled here.
 // Returns 0 on normal exit, or 1 on abnormal exit.
 int main(int argc, char* argv[]) {
   int result = 0;
-  Status status = process_command_line(argc, argv);
-  if (status == Status::kOk) {
-    try {
+  try {
+    AppStatus status = process_arguments(argc, argv);
+    if (status == AppStatus::kOk) {
       pefti::Application app(argc, argv);
       app.run();
-    } catch (const std::exception& e) {
-      std::cerr << e.what() << std::endl;
+    } else if (status == AppStatus::kError) {
       result = 1;
     }
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    result = 1;
   }
   return result;
 }
 
-static Status process_command_line(int argc, char* argv[]) {
-  Status status = Status::kOk;
+// Handles command-line arguments
+static AppStatus process_arguments(int argc, char* argv[]) {
+  AppStatus status = AppStatus::kOk;
   static constexpr auto kExpectedNumArgs{2};
   if (argc < kExpectedNumArgs) {
-    print_help();
-    status = Status::kError;
+    print_usage();
+    status = AppStatus::kError;
   } else {
     cxxopts::Options options("pefti",
                              "Playlist and EPG Filter/Transformer for IPTV");
-    options.add_options()("h,help", "Print usage")("v,version",
-                                                   "Print version");
+    options.add_options()("h,help", "Print usage")
+                         ("v,version", "Print version");
     auto result = options.parse(argc, argv);
     if (result.count("help")) {
-      print_help();
-      status = Status::kError;
+      print_usage();
+      status = AppStatus::kFinished;
     } else if (result.count("version")) {
       print_version();
-      status = Status::kError;
+      status = AppStatus::kFinished;
     }
   }
   return status;
 }
 
-static void print_help() {
+static void print_usage() {
   std::cout << "Usage: pefti [OPTION]... [--] config-file\n";
   std::cout << "  -h, --help              display this help text and exit\n";
   std::cout
