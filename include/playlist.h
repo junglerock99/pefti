@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "channels_mapper.h"
+#include "config.h"
 #include "iptv_channel.h"
 
 namespace pefti {
@@ -19,8 +21,7 @@ class Playlist {
   std::optional<std::unordered_set<std::string>> m_tvg_id_lookup{};
 
  public:
-  Playlist() = default;
-  explicit Playlist(int size) { m_playlist.reserve(size); }
+  Playlist(ConfigType& config) : m_config(config) {}
   decltype(m_playlist.begin()) begin() { return m_playlist.begin(); }
   decltype(m_playlist.cbegin()) cbegin() { return m_playlist.cbegin(); }
   decltype(m_playlist.cend()) cend() { return m_playlist.cend(); }
@@ -30,9 +31,13 @@ class Playlist {
   bool is_tvg_id_in_playlist(std::string_view tvg_id);
   void push_back(IptvChannel channel) { m_playlist.push_back(channel); }
   decltype(m_playlist.size()) size() { return m_playlist.size(); }
+
+ private:
+  ConfigType& m_config;
 };
 
 std::vector<std::string> load_playlists(const std::vector<std::string>& urls);
-void store_playlist(std::string_view filename, Playlist& playlist);
+void store_playlist(std::string_view filename, Playlist& playlist,
+                    ConfigType& config, ChannelsMapper& channels_mapperper);
 
 }  // namespace pefti

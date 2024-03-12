@@ -1,15 +1,16 @@
 #pragma once
 
+#include "channels_mapper.h"
 #include "config.h"
 #include "filter.h"
-#include "sorter.h"
+#include "playlist.h"
 #include "transformer.h"
 
 namespace pefti {
 
 class Application {
  public:
-  Application(int argc, char* argv[]);
+  Application(std::string&& config_filename);
   Application(const Application&) = delete;
   Application(const Application&&) = delete;
   void operator=(Application&) = delete;
@@ -17,10 +18,11 @@ class Application {
   void run();
 
  private:
-  std::shared_ptr<Config> m_config;
-  std::unique_ptr<Filter> m_filter;
-  std::unique_ptr<Transformer> m_transformer;
-  std::unique_ptr<Sorter> m_sorter;
+  ConfigType m_config;
+  Playlist m_playlist;
+  Filter m_filter;
+  Transformer m_transformer;
+  ChannelsMapper m_channels_mapper;
 };
 
 }  // namespace pefti

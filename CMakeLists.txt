@@ -5,6 +5,7 @@ set(INCLUDE_DIR include)
 set(SOURCE_DIR src)
 set(SOURCE_FILES
     ${SOURCE_DIR}/application.cc
+    ${SOURCE_DIR}/channels_mapper.cc
     ${SOURCE_DIR}/config.cc
     ${SOURCE_DIR}/epg.cc
     ${SOURCE_DIR}/filter.cc
@@ -13,8 +14,9 @@ set(SOURCE_FILES
     ${SOURCE_DIR}/playlist.cc
     ${SOURCE_DIR}/resource.cc
     ${SOURCE_DIR}/sax_fsm.cc
-    ${SOURCE_DIR}/sorter.cc
-    ${SOURCE_DIR}/transformer.cc)
+    ${SOURCE_DIR}/toml_config_reader.cc
+    ${SOURCE_DIR}/transformer.cc
+)
 
 project(${PROJECT_NAME} LANGUAGES CXX)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})

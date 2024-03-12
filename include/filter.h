@@ -1,11 +1,11 @@
 #pragma once
 
 #include <fstream>
-#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "channels_mapper.h"
 #include "config.h"
 #include "epg.h"
 #include "iptv_channel.h"
@@ -16,22 +16,27 @@ namespace pefti {
 // Application logic for filtering playlists and EPGs
 class Filter {
  public:
-  explicit Filter(std::shared_ptr<Config> config) : m_config(config) {}
+  Filter(ConfigType& config, Playlist& playlist,
+         ChannelsMapper& channels_mapper)
+      : m_config(config),
+        m_playlist(playlist),
+        m_channels_mapper(channels_mapper) {}
   Filter(Filter&) = delete;
   Filter(Filter&&) = delete;
   Filter& operator=(Filter&) = delete;
   Filter& operator=(Filter&&) = delete;
-  Playlist& filter(std::vector<std::string>&& playlists,
-                   Playlist& new_playlist);
+  void filter(std::vector<std::string>&& playlists);
   void filter(std::vector<std::string>&& epgs,
-              std::string_view new_epg_filename, Playlist& playlist);
+              std::string_view new_epg_filename);
 
  private:
   void copy_xml_nodes(const std::string& epg, std::string_view node_name,
-                      Playlist& playlist, std::ofstream& new_epg_stream);
+                      std::ofstream& new_epg_stream);
 
  private:
-  std::shared_ptr<Config> m_config;
+  ConfigType& m_config;
+  Playlist& m_playlist;
+  ChannelsMapper& m_channels_mapper;
 };
 
 }  // namespace pefti

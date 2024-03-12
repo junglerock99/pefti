@@ -8,7 +8,6 @@
 #include <fstream>
 #include <functional>
 #include <gsl/gsl>
-#include <memory>
 #include <ranges>
 #include <sstream>
 #include <string_view>
@@ -29,15 +28,6 @@ class CurlGlobalStateGuard {
 };
 static CurlGlobalStateGuard handle_curl_state;
 
-// Loads multiple resources, returns each resource in a std::string
-std::vector<std::string> load_resources(const std::vector<std::string>& urls) {
-  std::vector<std::string> resources(urls.size());
-  for (std::size_t i{}; i < urls.size(); i++)
-    load_resource(urls[i], resources[i]);
-  Ensures(resources.size() == urls.size());
-  return resources;
-}
-
 static void load_resource(const std::string& url, std::string& resource) {
   auto handle = EasyHandle(curl_easy_init(), curl_easy_cleanup);
   if (!handle) throw std::runtime_error("curl_easy_init() returned NULL");
@@ -54,6 +44,15 @@ static void load_resource(const std::string& url, std::string& resource) {
   if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
   code = curl_easy_perform(handle.get());
   if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
+}
+
+// Loads multiple resources, returns each resource in a std::string
+std::vector<std::string> load_resources(const std::vector<std::string>& urls) {
+  std::vector<std::string> resources(urls.size());
+  for (std::size_t i{}; i < urls.size(); i++)
+    load_resource(urls[i], resources[i]);
+  Ensures(resources.size() == urls.size());
+  return resources;
 }
 
 static size_t write_callback(void* ptr, size_t size, size_t nmemb,

@@ -4,7 +4,6 @@
 #include <libxml/xmlmemory.h>
 
 #include <fstream>
-#include <memory>
 #include <string>
 
 #include "playlist.h"

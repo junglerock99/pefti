@@ -1,31 +1,39 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 
+#include "channels_mapper.h"
 #include "config.h"
 #include "playlist.h"
 
 namespace pefti {
 
-// Contains the application logic for transforming a playlist.
+// Contains the application logic for transforming a playlist
 class Transformer {
  public:
-  explicit Transformer(std::shared_ptr<Config> config) : m_config(config) {}
+  explicit Transformer(ConfigType& config, Playlist& playlist,
+                       ChannelsMapper& channels_mapper)
+      : m_config(config),
+        m_playlist(playlist),
+        m_channels_mapper(channels_mapper) {}
   ~Transformer() = default;
   Transformer(Transformer&) = delete;
   Transformer(Transformer&&) = delete;
   Transformer& operator=(Transformer&) = delete;
   Transformer& operator=(Transformer&&) = delete;
-  void transform(Playlist& playlist);
+  void transform();
 
  private:
-  void set_tags(Playlist& playlist);
-  void set_quality(Playlist& playlist);
-  void set_name(Playlist& playlist);
+  void block_tags();
+  void copy_tags();
+  void copy_group_title_tag();
+  void order_by_sort_criteria();
+  void set_name();
 
  private:
-  std::shared_ptr<Config> m_config;
+  ConfigType& m_config;
+  Playlist& m_playlist;
+  ChannelsMapper& m_channels_mapper;
 };
 
 }  // namespace pefti

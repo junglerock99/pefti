@@ -96,7 +96,7 @@ allow = [
 
 ### All Currently Supported Features
 
-The new playlist file will contain two channels in the USA group, one channel in the Canada group, plus all channels in the Music group, in that order. If the URL for any channel matches one of the blocked URLs then that channel will be filtered out. If there are multiple instances of the same channel in the input playlists, then a maximum of three instances will appear in the new playlist file because `number_of_duplicates` is set to 2. `duplicates_location` specifies where the duplicates will be located, in this case they will be placed at the end of the group. The `qualities` array specifies which instances of a channel are preferred when there are multiple instances. *pefti* will search the channel's name to find the preferred instance. `tags_block` allows you to filter out tags, in this case the `tvg-logo` and `tvg-name` tags will not appear in the new playlist file for any channel. Any channel that contains "4K", "SD" or "spanish" in the channel name in the input playlists will be filtered out.
+The new playlist file will contain two channels in the USA group, one channel in the Canada group, plus all channels in the Music group, in that order. If the URL for any channel matches one of the blocked URLs then that channel will be filtered out. If there are multiple instances of the same channel in the input playlists, then a maximum of three instances will appear in the new playlist file because `number_of_duplicates` is set to 2. `duplicates_location` specifies where the duplicates will be located, in this case they will be placed at the end of the playlist. The `sort_qualities` array specifies which instances of a channel are preferred when there are multiple instances. *pefti* will search the channel's name to find the preferred instance. `tags_block` allows you to filter out tags, in this case the `tvg-logo` and `tvg-name` tags will not appear in the new playlist file for any channel. Any channel that contains "4K", "SD" or "spanish" in the channel name in the input playlists will be filtered out.
 ```
 [resources]
 playlists = ["https://example.com/iptv-1.m3u","https://example.com/iptv-2.m3u"]
@@ -107,18 +107,19 @@ allow = ["Music"]
 [urls]
 block = ["https://example.com/channel/123","https://example.com/channel/234"]
 [channels]
+copy_group_title = true
 number_of_duplicates = 2
 duplicates_location = "append_to_group"
-qualities = ["FHD","1080","HD","720"]
+sort_qualities = ["FHD","1080","HD","720"]
 tags_block = ["tvg-logo","tvg-name"]
 block = ["4K","SD","spanish"]
 allow = [  
   "USA", [ 
-  {allow = ["Nasa TV"], block = ["Media","UHD"], tags = {tvg-id = "Nasa TV HD"}},
-  {allow = ["Reuters TV"]},
+  {i=["Nasa TV"], e=["Media","UHD"], t={tvg-id = "Nasa TV HD"}},
+  {i=["Reuters TV"]},
   ],
   "Canada", [ 
-  {allow = ["TSC"], rename = "Shopping Channel"},
+  {i=["TSC"], n="Shopping Channel"},
   ]
 ]
 ```
@@ -151,7 +152,7 @@ The channel will be added to the new playlist if its `group-title` tag matches a
 
 #### Allow Channel
 
-The channel will be added to the new playlist if it matches any of the entries in `[channels] allow` in the configuration. It is a match if the channel name contains all of the entries in an `allow` array and none of the entries in the corresponding `block` array.
+The channel will be added to the new playlist if it matches any of the entries in `[channels] allow` in the configuration. It is a match if the channel name contains all of the entries in an `i` (include) array and none of the entries in the corresponding `e` (exclude) array.
 
 ```mermaid
 graph TD;
@@ -214,12 +215,21 @@ block | Array of text strings | URLs to filter out. A channel will be filtered o
 ### [channels] table
 Key | Type | Value 
 --- | --- | ---
+copy_group_title | Boolean | 
 number_of_duplicates | Integer | When there are multiple instances of a channel in the input playlist files, specifies how many duplicate instances to copy to the new playlist file.
 duplicates_location | Text string | When there are multiple instances of a channel and `number_of_duplicates` is greater than zero, specifies where the duplicate channels are to be located in the new playlist file. Options are `inline` where all instances are located together, or `append_to_group` where duplicate instances are moved to the end of the group.
-qualities | Array of text strings | When there are multiple instances of a channel, searches the channel names to find the best quality. This array should contain the text strings to search for in order of preference, e.g. `["4K","1080","720"]`.
+sort_qualities | Array of text strings | When there are multiple instances of a channel, searches the channel names to find the best quality. This array should contain the text strings to search for in order of preference, e.g. `["4K","1080","720"]`.
 tags_block | Array of text strings | Tags to filter out, e.g. `["tvg-id","tvg-name"]`.
 block | Array of text strings | Filters out a channel if its name contains any of these text strings
-allow | Array | Contains repeating group-name, allowed channels, group-name, allowed channels etc. Each allowed channel is a table containing text strings that the channel name must contain, text strings that the channel cannot contain and tags to add to the channel. See example above.
+allow | Array | Contains one table for each channel that should be added to the playlist. See below for details.
+
+#### [channels] allow table
+Key | Type | Value 
+--- | --- | ---
+i | Array of text strings | The channel name must include all of these substrings
+e | Array of text strings | The channel name must exclude all of these substrings
+n | Text string | New name for the channel. If a new name is not specified then the first entry in the i (include) array will be used as the new name for the channel.
+t | Table | Contains tags to add to the channel. Each tag is a key=value pair, e.g. `t={group-title="News",tvg-id="MYCHANNEL"}`. If the channel already contains the tag then it will be overwritten.
 
 ## Source Code
 
