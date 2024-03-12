@@ -77,20 +77,16 @@ allow = ["News","Weather]
 
 ### Allow Channels
 
-This configuration creates a new playlist file that contains only the specified channels. The new playlist will contain only three channels, two in the USA group and one in the Canada group.
+This configuration creates a new playlist file that contains only the specified channels. The new playlist will contain only three channels.
 ```
 [resources]
 playlists = ["https://example.com/iptv-1.m3u","https://example.com/iptv-2.m3u"]
 new_playlist = "new.m3u"
 [channels]
 allow = [  
-  "USA", [ 
-  {allow = ["Nasa TV"]},
-  {allow = ["Reuters TV"]},
-  ],
-  "Canada", [ 
-  {allow = ["TSC"]},
-  ]
+  {i = ["Nasa TV"]},
+  {i = ["Reuters TV"]},
+  {i = ["TSC"]},
 ]
 ```
 
@@ -109,17 +105,14 @@ block = ["https://example.com/channel/123","https://example.com/channel/234"]
 [channels]
 copy_group_title = true
 number_of_duplicates = 2
-duplicates_location = "append_to_group"
+duplicates_location = "append"
 sort_qualities = ["FHD","1080","HD","720"]
 tags_block = ["tvg-logo","tvg-name"]
 block = ["4K","SD","spanish"]
 allow = [  
-  "USA", [ 
-  {i=["Nasa TV"], e=["Media","UHD"], t={tvg-id = "Nasa TV HD"}},
+  {i=["Nasa TV"], e=["Media","UHD"], t={tvg-id="Nasa TV HD",group-title="USA"}},
   {i=["Reuters TV"]},
-  ],
-  "Canada", [ 
-  {i=["TSC"], n="Shopping Channel"},
+  {i=["TSC"], n="Shopping Channel", t={group-title="Canada"}},
   ]
 ]
 ```
@@ -221,7 +214,7 @@ duplicates_location | Text string | When there are multiple instances of a chann
 sort_qualities | Array of text strings | When there are multiple instances of a channel, searches the channel names to find the best quality. This array should contain the text strings to search for in order of preference, e.g. `["4K","1080","720"]`.
 tags_block | Array of text strings | Tags to filter out, e.g. `["tvg-id","tvg-name"]`.
 block | Array of text strings | Filters out a channel if its name contains any of these text strings
-allow | Array | Contains one table for each channel that should be added to the playlist. See below for details.
+allow | Array of tables | Contains one table for each channel to be added to the playlist. See below for details.
 
 #### [channels] allow table
 Key | Type | Value 
