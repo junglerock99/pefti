@@ -5,12 +5,13 @@ set(INCLUDE_DIR include)
 set(SOURCE_DIR src)
 set(SOURCE_FILES
     ${SOURCE_DIR}/application.cc
-    ${SOURCE_DIR}/channels_mapper.cc
     ${SOURCE_DIR}/config.cc
     ${SOURCE_DIR}/epg.cc
     ${SOURCE_DIR}/filter.cc
     ${SOURCE_DIR}/iptv_channel.cc
     ${SOURCE_DIR}/main.cc
+    ${SOURCE_DIR}/mapper.cc
+    ${SOURCE_DIR}/parser.cc
     ${SOURCE_DIR}/playlist.cc
     ${SOURCE_DIR}/resource.cc
     ${SOURCE_DIR}/sax_fsm.cc
@@ -64,7 +65,17 @@ FetchContent_Declare(GSL
 )
 FetchContent_MakeAvailable(GSL)
 
+FetchContent_Declare(
+    cppcoro
+    GIT_REPOSITORY https://github.com/andreasbuhr/cppcoro.git
+    GIT_TAG 244f834274a850eeca4cc5c86acbca1a0fbe9d95)
+set(BUILD_TESTING OFF)
+FetchContent_MakeAvailable(cppcoro)
+unset(BUILD_TESTING)
+include_directories(${cppcoro_SOURCE_DIR}/include)
+
 target_include_directories (${PROJECT_NAME} PRIVATE ${LIBXML2_INCLUDE_DIR})
 target_link_libraries (${PROJECT_NAME} PRIVATE ${LIBXML2_LIBRARIES} libcurl)
 target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft.GSL::GSL)
+target_link_libraries (${PROJECT_NAME} PRIVATE cppcoro)
 

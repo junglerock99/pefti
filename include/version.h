@@ -2,4 +2,4 @@
 
 static constexpr auto kVersionMajor = 0;
 static constexpr auto kVersionMinor = 3;
-static constexpr auto kVersionPatch = 4;
+static constexpr auto kVersionPatch = 5;

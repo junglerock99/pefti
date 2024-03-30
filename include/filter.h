@@ -1,14 +1,17 @@
 #pragma once
 
-#include <fstream>
+#include <cppcoro/single_producer_sequencer.hpp>
+#include <cppcoro/static_thread_pool.hpp>
+#include <cppcoro/task.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
 
-#include "channels_mapper.h"
+#include "buffers.h"
 #include "config.h"
 #include "epg.h"
 #include "iptv_channel.h"
+#include "mapper.h"
 #include "playlist.h"
 
 namespace pefti {
@@ -25,9 +28,10 @@ class Filter {
   Filter(Filter&&) = delete;
   Filter& operator=(Filter&) = delete;
   Filter& operator=(Filter&&) = delete;
-  void filter(std::vector<std::string>&& playlists);
   void filter(std::vector<std::string>&& epgs,
               std::string_view new_epg_filename);
+  cppcoro::task<> filter_iptv_channels(cppcoro::static_thread_pool& tp,
+                                       PlaylistParserFilterBuffer& buffer);
 
  private:
   void copy_xml_nodes(const std::string& epg, std::string_view node_name,

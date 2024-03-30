@@ -6,9 +6,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "channels_mapper.h"
 #include "config.h"
 #include "iptv_channel.h"
+#include "mapper.h"
 
 namespace pefti {
 
