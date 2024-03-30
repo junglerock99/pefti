@@ -46,7 +46,7 @@ std::string SaxFsm::get_attribute_value(std::string_view attribute_name,
 }
 
 // SAX2 handler when an element end has been detected by the parser.
-// It provides the namespace informations for the element.
+// It provides the namespace information for the element.
 // context: The user data (XML parser context)
 // localname: The local name of the element
 // prefix: The element namespace prefix if available

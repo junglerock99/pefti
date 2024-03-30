@@ -2,8 +2,9 @@
 
 #include <vector>
 
-#include "channels_mapper.h"
+#include "buffers.h"
 #include "config.h"
+#include "mapper.h"
 #include "playlist.h"
 
 namespace pefti {

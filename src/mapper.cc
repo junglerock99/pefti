@@ -1,4 +1,4 @@
-#include "channels_mapper.h"
+#include "mapper.h"
 
 #include <optional>
 #include <ranges>
@@ -17,11 +17,7 @@ const ChannelTemplate& ChannelsMapper::get_channel_template(
 
 // Checks if an IPTV channel has a corresponding channel template
 bool ChannelsMapper::is_allowed_channel(IptvChannel& iptv_channel) {
-  if (map_channel_to_template(iptv_channel) != std::nullopt) {
-    return true;
-  } else {
-    return false;
-  }
+  return map_channel_to_template(iptv_channel) != std::nullopt;
 }
 
 // Case insensitive comparisons are performed by converting both text

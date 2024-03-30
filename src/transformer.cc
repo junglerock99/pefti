@@ -58,9 +58,7 @@ void Transformer::copy_tags() {
     if (m_channels_mapper.is_allowed_channel(channel))
       channel.set_tags(m_channels_mapper.get_channel_template(channel).tags);
   };
-  std::for_each(std::execution::par, 
-                m_playlist.begin(), 
-                m_playlist.end(),
+  std::for_each(std::execution::par, m_playlist.begin(), m_playlist.end(),
                 set_tags);
 }
 
@@ -100,9 +98,7 @@ void Transformer::set_name() {
       channel.set_new_name(
           m_channels_mapper.get_channel_template(channel).new_name);
   };
-  std::for_each(std::execution::par, 
-                m_playlist.begin(), 
-                m_playlist.end(),
+  std::for_each(std::execution::par, m_playlist.begin(), m_playlist.end(),
                 set_name);
 }
 

@@ -4,16 +4,21 @@
 #include <libxml/xmlmemory.h>
 
 #include <algorithm>
+#include <cppcoro/single_producer_sequencer.hpp>
+#include <cppcoro/static_thread_pool.hpp>
+#include <cppcoro/task.hpp>
 #include <gsl/gsl>
+#include <iostream>
 #include <optional>
 #include <ranges>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "channels_mapper.h"
+#include "buffers.h"
 #include "config.h"
 #include "iptv_channel.h"
+#include "mapper.h"
 #include "playlist.h"
 #include "sax_fsm.h"
 
@@ -39,72 +44,6 @@ void Filter::copy_xml_nodes(const std::string& source,
   xmlCleanupParser();
 }
 
-// Filters playlists and creates a new playlist
-void Filter::filter(std::vector<std::string>&& playlists) {
-  Expects(!playlists.empty());
-  Expects(m_playlist.empty());
-  //
-  // Lambdas for filtering
-  //
-  // Filters out a channel if it is a member of a blocked group
-  auto block_group = [this](auto&& channel) {
-    auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
-    if (group_title != std::nullopt) {
-      return !(m_config.is_blocked_group(*group_title));
-    } else {
-      return true;
-    }
-  };
-  //
-  // Filters out a channel if its name contains any of the text strings
-  // that identify blocked channels
-  auto block_channel = [this](auto&& channel) {
-    return !(m_config.is_blocked_channel(channel.get_original_name()));
-  };
-  //
-  // Filters out a channel if it has a blocked URL
-  auto block_url = [this](auto&& channel) {
-    return !(m_config.is_blocked_url(channel.get_url()));
-  };
-  //
-  // Filters out a channel if it is not an allowed channel or in an allowed
-  // group. A special case is that if no allowed groups or allowed channels are
-  // specified in the configuration then all channels are unfiltered.
-  auto allow_groups_and_channels = [this](auto&& channel) {
-    const bool are_all_channels_allowed =
-        (m_config.get_num_channels_templates() +
-         m_config.get_num_allowed_groups()) == 0;
-    const auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
-    bool is_allowed{false};
-    if (are_all_channels_allowed) {
-      is_allowed = true;
-    } else if ((group_title != std::nullopt) &&
-               (m_config.is_allowed_group(*group_title))) {
-      is_allowed = true;
-    } else if (m_channels_mapper.is_allowed_channel(channel)) {
-      is_allowed = true;
-    } else
-      is_allowed = false;
-    return is_allowed;
-  };
-  //
-  // Filter all channels from the input playlists to create the new playlist
-  std::vector<std::istringstream> streams(playlists.size());
-  std::ranges::for_each(playlists, [&streams](auto&& playlist) {
-    streams.emplace_back(std::istringstream{playlist});
-  });
-  for (auto& stream : streams) {
-    auto view = std::views::istream<IptvChannel>(stream) |
-                std::views::filter(block_group) |
-                std::views::filter(block_channel) |
-                std::views::filter(block_url) |
-                std::views::filter(allow_groups_and_channels);
-    for (auto channel : view) {
-      m_playlist.push_back(std::move(channel));
-    }
-  }
-}
-
 // Filters EPGs and creates a new EPG file.
 // Copies <channel> and <programme> nodes from all EPGs to the new EPG.
 void Filter::filter(std::vector<std::string>&& epgs,
@@ -122,6 +61,71 @@ void Filter::filter(std::vector<std::string>&& epgs,
   }
   new_epg_stream << "\n</tv>" << '\n';
   new_epg_stream.close();
+}
+
+cppcoro::task<> Filter::filter_iptv_channels(
+    cppcoro::static_thread_pool& tp, PlaylistParserFilterBuffer& buffer) {
+  //
+  // Lambdas
+  const auto is_blocked_group = [this](auto&& channel) {
+    const auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
+    return ((group_title != std::nullopt) &&
+            (m_config.is_blocked_group(*group_title)));
+  };
+  //
+  const auto is_blocked_channel = [this](auto&& channel) {
+    return m_config.is_blocked_channel(channel.get_original_name());
+  };
+  //
+  const auto is_blocked_url = [this](auto&& channel) {
+    return m_config.is_blocked_url(channel.get_url());
+  };
+  //
+  // A special case is that if no allowed groups or allowed channels are
+  // specified in the configuration then all channels are allowed.
+  const auto are_all_channels_allowed = [this]() {
+    return (m_config.get_num_channels_templates() +
+            m_config.get_num_allowed_groups()) == 0;
+  };
+  //
+  const auto is_allowed_group = [this](auto&& channel) {
+    const auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
+    return ((group_title != std::nullopt) &&
+            (m_config.is_allowed_group(*group_title)));
+  };
+  //
+  const auto is_allowed_channel = [this](auto&& channel) {
+    return m_channels_mapper.is_allowed_channel(channel);
+  };
+  //
+  // End of lambdas
+  //
+  co_await tp.schedule();
+  //
+  // Buffer size must be a power of 2
+  constexpr auto size = std::tuple_size<decltype(buffer.data)>::value;
+  static_assert((size > 0) && ((size & (size - 1)) == 0));
+  const size_t index_mask = buffer.data.size() - 1;
+  size_t read_index{0};
+  while (true) {
+    const size_t write_index =
+        co_await buffer.sequencer.wait_until_published(read_index, tp);
+    do {
+      auto& channel = buffer.data[read_index & index_mask];
+      const bool is_sentinel = channel.get_original_name() == kSentinel;
+      if (!is_sentinel) {
+        if (!is_blocked_group(channel) && !is_blocked_channel(channel) &&
+            !is_blocked_url(channel) &&
+            (are_all_channels_allowed() || is_allowed_group(channel) ||
+             is_allowed_channel(channel))) {
+          m_playlist.push_back(std::move(channel));
+        }
+      } else {
+        co_return;
+      }
+    } while (read_index++ != write_index);
+    buffer.barrier.publish(read_index);
+  }
 }
 
 }  // namespace pefti

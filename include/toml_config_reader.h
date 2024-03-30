@@ -2,14 +2,13 @@
 
 #define TOML_HEADER_ONLY 0
 #include <exception>
+#include <gsl/gsl>
 #include <ranges>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
-
-#include <gsl/gsl>
 
 #include "toml++/toml.hpp"
 

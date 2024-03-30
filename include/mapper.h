@@ -24,6 +24,7 @@ class ChannelsMapper {
   void populate_maps();
   void set_config(ConfigType& config);
   void set_playlist(Playlist& playlist);
+  void update_maps(IptvChannel* iptv_channel);
 
  private:
   typedef std::unordered_map<ChannelTemplate*, std::vector<IptvChannel*>>
