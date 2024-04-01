@@ -3,7 +3,6 @@
 #include <curl/curl.h>
 #include <curl/mprintf.h>
 
-#include <algorithm>
 #include <exception>
 #include <fstream>
 #include <gsl/gsl>

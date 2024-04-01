@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cppcoro/single_producer_sequencer.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 #include <string>

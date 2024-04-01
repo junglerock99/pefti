@@ -1,22 +1,12 @@
 #include "resource.h"
 
 #include <curl/curl.h>
-#include <curl/mprintf.h>
 
-#include <algorithm>
 #include <exception>
-#include <fstream>
-#include <functional>
 #include <gsl/gsl>
-#include <ranges>
-#include <sstream>
-#include <string_view>
 
 namespace pefti {
 
-using EasyHandle = std::unique_ptr<CURL, std::function<void(CURL*)>>;
-
-static void load_resource(const std::string& url, std::string& resource);
 static size_t write_callback(void* ptr, size_t size, size_t nmemb,
                              void* userdata);
 
@@ -28,29 +18,60 @@ class CurlGlobalStateGuard {
 };
 static CurlGlobalStateGuard handle_curl_state;
 
-static void load_resource(const std::string& url, std::string& resource) {
-  auto handle = EasyHandle(curl_easy_init(), curl_easy_cleanup);
-  if (!handle) throw std::runtime_error("curl_easy_init() returned NULL");
-  CURLcode code;
-  code = curl_easy_setopt(handle.get(), CURLOPT_URL, url.c_str());
-  if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
-  code = curl_easy_setopt(handle.get(), CURLOPT_SSL_VERIFYPEER, 0L);
-  if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
-  code = curl_easy_setopt(handle.get(), CURLOPT_SSL_VERIFYHOST, 0L);
-  if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
-  code = curl_easy_setopt(handle.get(), CURLOPT_WRITEFUNCTION, write_callback);
-  if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
-  code = curl_easy_setopt(handle.get(), CURLOPT_WRITEDATA, &resource);
-  if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
-  code = curl_easy_perform(handle.get());
-  if (code != CURLE_OK) throw std::runtime_error(curl_easy_strerror(code));
+void add_transfer(CURLM* multi_handle, const char* url, std::string& output) {
+  auto easy_handle = curl_easy_init();
+  if (!easy_handle) throw std::runtime_error("curl_easy_init() returned NULL");
+  CURLcode ecode;
+  ecode = curl_easy_setopt(easy_handle, CURLOPT_URL, url);
+  if (ecode != CURLE_OK) throw std::runtime_error(curl_easy_strerror(ecode));
+  ecode = curl_easy_setopt(easy_handle, CURLOPT_PRIVATE, url);
+  if (ecode != CURLE_OK) throw std::runtime_error(curl_easy_strerror(ecode));
+  ecode = curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, write_callback);
+  if (ecode != CURLE_OK) throw std::runtime_error(curl_easy_strerror(ecode));
+  ecode = curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, &output);
+  if (ecode != CURLE_OK) throw std::runtime_error(curl_easy_strerror(ecode));
+  ecode = curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+  if (ecode != CURLE_OK) throw std::runtime_error(curl_easy_strerror(ecode));
+  ecode = curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYHOST, 0L);
+  if (ecode != CURLE_OK) throw std::runtime_error(curl_easy_strerror(ecode));
+  CURLMcode mcode = curl_multi_add_handle(multi_handle, easy_handle);
+  if (mcode != CURLM_OK) throw std::runtime_error(curl_multi_strerror(mcode));
 }
 
-// Loads multiple resources, returns each resource in a std::string
+// Loads multiple resources concurrently.
+// Returns each resource in a std::string.
 std::vector<std::string> load_resources(const std::vector<std::string>& urls) {
-  std::vector<std::string> resources(urls.size());
-  for (std::size_t i{}; i < urls.size(); i++)
-    load_resource(urls[i], resources[i]);
+  const int num_resources{static_cast<int>(urls.size())};
+  std::vector<std::string> resources(num_resources);
+  auto mhandle = curl_multi_init();
+  if (!mhandle) throw std::runtime_error("curl_multi_init() returned NULL");
+  CURLMcode mcode;
+  mcode = curl_multi_setopt(mhandle, CURLMOPT_MAXCONNECTS,
+                            static_cast<long>(num_resources));
+  if (mcode != CURLM_OK) throw std::runtime_error(curl_multi_strerror(mcode));
+  for (int i{0}; i < num_resources; ++i)
+    add_transfer(mhandle, urls[i].c_str(), resources[i]);
+  int num_transfers_running{num_resources};
+  do {
+    mcode = curl_multi_perform(mhandle, &num_transfers_running);
+    if (mcode != CURLM_OK) throw std::runtime_error(curl_multi_strerror(mcode));
+    CURLMsg* msg;
+    int num_msgs_in_queue;
+    while ((msg = curl_multi_info_read(mhandle, &num_msgs_in_queue))) {
+      if (msg->msg == CURLMSG_DONE) {
+        CURL* ehandle = msg->easy_handle;
+        curl_multi_remove_handle(mhandle, ehandle);
+        curl_easy_cleanup(ehandle);
+      }
+    }
+    if (num_transfers_running > 0) {
+      mcode = curl_multi_wait(mhandle, NULL, 0, 1000, NULL);
+      if (mcode != CURLM_OK)
+        throw std::runtime_error(curl_multi_strerror(mcode));
+    }
+  } while (num_transfers_running > 0);
+  mcode = curl_multi_cleanup(mhandle);
+  if (mcode != CURLM_OK) throw std::runtime_error(curl_multi_strerror(mcode));
   Ensures(resources.size() == urls.size());
   return resources;
 }

@@ -4,7 +4,6 @@
 #include <libxml/xmlmemory.h>
 
 #include <algorithm>
-#include <cppcoro/single_producer_sequencer.hpp>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
 #include <gsl/gsl>
@@ -67,6 +66,7 @@ cppcoro::task<> Filter::filter_iptv_channels(
     cppcoro::static_thread_pool& tp, PlaylistParserFilterBuffer& buffer) {
   //
   // Lambdas
+  //
   const auto is_blocked_group = [this](auto&& channel) {
     const auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
     return ((group_title != std::nullopt) &&
@@ -100,6 +100,7 @@ cppcoro::task<> Filter::filter_iptv_channels(
   //
   // End of lambdas
   //
+  // Schedule this coroutine onto the threadpool
   co_await tp.schedule();
   //
   // Buffer size must be a power of 2
@@ -108,12 +109,16 @@ cppcoro::task<> Filter::filter_iptv_channels(
   const size_t index_mask = buffer.data.size() - 1;
   size_t read_index{0};
   while (true) {
+    //
+    // Wait for next channel to be added to the buffer
     const size_t write_index =
         co_await buffer.sequencer.wait_until_published(read_index, tp);
     do {
       auto& channel = buffer.data[read_index & index_mask];
       const bool is_sentinel = channel.get_original_name() == kSentinel;
       if (!is_sentinel) {
+        //
+        // Apply filters
         if (!is_blocked_group(channel) && !is_blocked_channel(channel) &&
             !is_blocked_url(channel) &&
             (are_all_channels_allowed() || is_allowed_group(channel) ||

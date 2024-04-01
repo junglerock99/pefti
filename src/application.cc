@@ -8,7 +8,6 @@
 #include <cppcoro/task.hpp>
 #include <cppcoro/when_all.hpp>
 #include <cxxopts.hpp>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -32,6 +31,15 @@ Application::Application(std::string&& config_filename)
   m_channels_mapper.set_playlist(m_playlist);
 }
 
+cppcoro::task<> Application::process_epgs(
+    cppcoro::static_thread_pool& thread_pool) {
+  co_await thread_pool.schedule();
+  const auto& epg_urls = m_config.get_epgs_urls();
+  auto epgs = load_epgs(epg_urls);
+  co_await m_have_iptv_channels;
+  m_filter.filter(std::move(epgs), m_config.get_new_epg_filename());
+}
+
 cppcoro::task<> Application::process_playlists(
     cppcoro::static_thread_pool& thread_pool) {
   co_await thread_pool.schedule();
@@ -46,15 +54,6 @@ cppcoro::task<> Application::process_playlists(
   m_have_iptv_channels.set();
   store_playlist(m_config.get_new_playlist_filename(), m_playlist, m_config,
                  m_channels_mapper);
-}
-
-cppcoro::task<> Application::process_epgs(
-    cppcoro::static_thread_pool& thread_pool) {
-  co_await thread_pool.schedule();
-  const auto& epg_urls = m_config.get_epgs_urls();
-  auto epgs = load_epgs(epg_urls);
-  co_await m_have_iptv_channels;
-  m_filter.filter(std::move(epgs), m_config.get_new_epg_filename());
 }
 
 // Fiters and transforms IPTV playlists and creates a new playlist according
