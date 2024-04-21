@@ -25,7 +25,7 @@ class TomlConfigReader {
   template <template <typename...> typename T, typename U>
   void get_data(std::string_view path, T<U>& destination) {
     Expects(destination.empty());
-    auto node = m_toml_config[toml::path{path}];
+    auto node = toml_config_[toml::path{path}];
     if (!node) return;
     if (!node.is_array()) throw std::runtime_error("Expected array"s);
     auto array = node.as_array();
@@ -60,7 +60,7 @@ class TomlConfigReader {
   // Get strings
   template <typename T>
   void get_data(std::string_view path, std::basic_string<T>& destination) {
-    auto node = m_toml_config[toml::path{path}];
+    auto node = toml_config_[toml::path{path}];
     if (!node) return;
     if (!node.is_string()) throw std::runtime_error("Expected text string"s);
     destination = **(node.as_string());
@@ -69,7 +69,7 @@ class TomlConfigReader {
   // Get integers and booleans
   template <typename T>
   void get_data(std::string_view path, T& destination) {
-    auto node = m_toml_config[toml::path{path}];
+    auto node = toml_config_[toml::path{path}];
     if (!node) return;
     if constexpr (std::is_integral_v<T>) {
       if (node.is_boolean()) {
@@ -125,7 +125,7 @@ class TomlConfigReader {
   }
 
  private:
-  toml::table m_toml_config;
+  toml::table toml_config_;
 };
 
 }  // namespace pefti

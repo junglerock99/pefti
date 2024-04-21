@@ -18,11 +18,11 @@ using namespace std::literals;
 namespace pefti {
 
 TomlConfigReader::TomlConfigReader(std::string& filename) {
-  m_toml_config = toml::parse_file(filename);
+  toml_config_ = toml::parse_file(filename);
 }
 
 void TomlConfigReader::check_required_element(std::string_view path) {
-  auto node = m_toml_config[toml::path{path}];
+  auto node = toml_config_[toml::path{path}];
   if (!node) {
     std::ostringstream stream;
     stream << path << ": missing from config"s;

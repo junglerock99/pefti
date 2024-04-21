@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 #include <string>
 
 #include "playlist.h"
@@ -13,19 +14,7 @@ namespace pefti {
 
 SaxFsm::SaxFsm(std::string_view parent_node, std::ofstream& stream,
                Playlist& playlist)
-    : m_parent_node(parent_node), m_stream(stream), m_playlist(playlist) {}
-
-// SAX2 handler for characters between start and end elements
-void SaxFsm::handler_characters(void* context, const xmlChar* begin,
-                                int length) {
-  SaxFsm& fsm = *(static_cast<SaxFsm*>(context));
-  if (fsm.m_state == State::kInsideNode) {
-    auto end = begin + length;
-    std::for_each(begin, end, [&fsm](unsigned char c) {
-      if (!std::isspace(c) || c == ' ') fsm.m_characters.push_back(c);
-    });
-  }
-}
+    : parent_node_(parent_node), stream_(stream), playlist_(playlist) {}
 
 std::string SaxFsm::get_attribute_value(std::string_view attribute_name,
                                         int num_attributes,
@@ -45,6 +34,18 @@ std::string SaxFsm::get_attribute_value(std::string_view attribute_name,
   return value;
 }
 
+// SAX2 handler for characters between start and end elements
+void SaxFsm::handler_characters(void* context, const xmlChar* begin,
+                                int length) {
+  SaxFsm& fsm = *(static_cast<SaxFsm*>(context));
+  if (fsm.state_ == State::kInsideNode) {
+    auto end = begin + length;
+    std::for_each(begin, end, [&fsm](unsigned char c) {
+      if (!std::isspace(c) || c == ' ') fsm.characters_.push_back(c);
+    });
+  }
+}
+
 // SAX2 handler when an element end has been detected by the parser.
 // It provides the namespace information for the element.
 // context: The user data (XML parser context)
@@ -55,29 +56,29 @@ void SaxFsm::handler_end_element(void* context, const xmlChar* local_name,
                                  const xmlChar*, const xmlChar*) {
   SaxFsm& fsm = *(static_cast<SaxFsm*>(context));
   std::string element_name{reinterpret_cast<const char*>(local_name)};
-  switch (fsm.m_state) {
+  switch (fsm.state_) {
     case State::kWaitingForParentNode:
       return;
     case State::kInsideNode: {
-      if (element_name != fsm.m_current_node_name)
+      if (element_name != fsm.current_node_name_)
         throw std::runtime_error("Invalid XML");
-      if (!std::all_of(fsm.m_characters.begin(), fsm.m_characters.end(),
+      if (!std::all_of(fsm.characters_.begin(), fsm.characters_.end(),
                        isspace)) {
-        fsm.m_stream << fsm.m_characters;
+        fsm.stream_ << fsm.characters_;
       }
     } break;
     case State::kOutsideNode:
-      fsm.m_stream << '\n';
-      fsm.m_indentation--;
-      for (int i{}; i < fsm.m_indentation; i++) fsm.m_stream << '\t';
+      fsm.stream_ << '\n';
+      fsm.indentation_--;
+      for (int i{}; i < fsm.indentation_; i++) fsm.stream_ << '\t';
       break;
   }
-  fsm.m_characters.clear();
-  fsm.m_stream << "</" << element_name << '>';
-  if (element_name == fsm.m_parent_node) {
-    fsm.m_state = State::kWaitingForParentNode;
+  fsm.characters_.clear();
+  fsm.stream_ << "</" << element_name << '>';
+  if (element_name == fsm.parent_node_) {
+    fsm.state_ = State::kWaitingForParentNode;
   } else {
-    fsm.m_state = State::kOutsideNode;
+    fsm.state_ = State::kOutsideNode;
   }
 }
 
@@ -101,34 +102,38 @@ void SaxFsm::handler_start_element(void* context, const xmlChar* local_name,
                                    const xmlChar** attributes) {
   SaxFsm& fsm = *(static_cast<SaxFsm*>(context));
   std::string element_name{reinterpret_cast<const char*>(local_name)};
-  if (fsm.m_state == State::kWaitingForParentNode) {
-    if (element_name.compare(fsm.m_parent_node) == 0) {
-      auto attribute_name = (fsm.m_parent_node == KChannel) ? kId : KChannel;
+  if (fsm.state_ == State::kWaitingForParentNode) {
+    if (element_name.compare(fsm.parent_node_) == 0) {
+      auto attribute_name = (fsm.parent_node_ == KChannel) ? kId : KChannel;
       std::string tvg_id =
           fsm.get_attribute_value(attribute_name, num_attributes, attributes);
-      if (!fsm.m_playlist.is_tvg_id_in_playlist(tvg_id)) return;
-      fsm.m_indentation = 1;
+      if (!fsm.playlist_.is_tvg_id_in_playlist(tvg_id)) return;
+
+      if (fsm.parent_node_ == kProgramme)
+        std::cout << tvg_id << " is in playlist" << std::endl;
+
+      fsm.indentation_ = 1;
     } else {
       return;
     }
-  } else if (fsm.m_state == State::kInsideNode) {
-    fsm.m_indentation++;
+  } else if (fsm.state_ == State::kInsideNode) {
+    fsm.indentation_++;
   }
-  fsm.m_characters.clear();
-  fsm.m_stream << '\n';
-  for (int i{}; i < fsm.m_indentation; i++) fsm.m_stream << '\t';
-  fsm.m_stream << '<' << element_name;
+  fsm.characters_.clear();
+  fsm.stream_ << '\n';
+  for (int i{}; i < fsm.indentation_; i++) fsm.stream_ << '\t';
+  fsm.stream_ << '<' << element_name;
   unsigned int index = 0;
   for (int i = 0; i < num_attributes; ++i, index += 5) {
     const xmlChar* localname = attributes[index];
     const xmlChar* valueBegin = attributes[index + 3];
     const xmlChar* valueEnd = attributes[index + 4];
     std::string value((const char*)valueBegin, (const char*)valueEnd);
-    fsm.m_stream << ' ' << localname << R"(=")" << value << '"';
+    fsm.stream_ << ' ' << localname << R"(=")" << value << '"';
   }
-  fsm.m_stream << '>';
-  fsm.m_current_node_name = element_name;
-  fsm.m_state = State::kInsideNode;
+  fsm.stream_ << '>';
+  fsm.current_node_name_ = element_name;
+  fsm.state_ = State::kInsideNode;
 }
 
 }  // namespace pefti

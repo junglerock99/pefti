@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cppcoro/task.hpp>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -17,23 +18,21 @@ class Playlist {
   using vi = std::vector<IptvChannel>::iterator;
 
  private:
-  std::vector<IptvChannel> m_playlist;
-  std::optional<std::unordered_set<std::string>> m_tvg_id_lookup{};
+  ConfigType& config_;
+  std::vector<IptvChannel> playlist_;
+  std::optional<std::unordered_set<std::string>> tvg_id_lookup_{};
 
  public:
-  Playlist(ConfigType& config) : m_config(config) {}
-  decltype(m_playlist.begin()) begin() { return m_playlist.begin(); }
-  decltype(m_playlist.cbegin()) cbegin() { return m_playlist.cbegin(); }
-  decltype(m_playlist.cend()) cend() { return m_playlist.cend(); }
-  decltype(m_playlist.empty()) empty() { return m_playlist.empty(); }
-  decltype(m_playlist.end()) end() { return m_playlist.end(); }
-  vi erase(vi begin, vi end) { return m_playlist.erase(begin, end); }
+  Playlist(ConfigType& config) : config_(config) {}
+  decltype(playlist_.begin()) begin() { return playlist_.begin(); }
+  decltype(playlist_.cbegin()) cbegin() { return playlist_.cbegin(); }
+  decltype(playlist_.cend()) cend() { return playlist_.cend(); }
+  decltype(playlist_.empty()) empty() { return playlist_.empty(); }
+  decltype(playlist_.end()) end() { return playlist_.end(); }
+  vi erase(vi begin, vi end) { return playlist_.erase(begin, end); }
   bool is_tvg_id_in_playlist(std::string_view tvg_id);
-  void push_back(IptvChannel channel) { m_playlist.push_back(channel); }
-  decltype(m_playlist.size()) size() { return m_playlist.size(); }
-
- private:
-  ConfigType& m_config;
+  cppcoro::task<> push_back(IptvChannel channel);
+  decltype(playlist_.size()) size() { return playlist_.size(); }
 };
 
 std::vector<std::string> load_playlists(const std::vector<std::string>& urls);

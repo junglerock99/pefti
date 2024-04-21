@@ -34,7 +34,7 @@ class SaxFsm {
   static void handler_characters(void* context, const xmlChar* begin,
                                  int length);
 
-  State m_state{State::kWaitingForParentNode};
+  State state_{State::kWaitingForParentNode};
 
  private:
   std::string get_attribute_value(std::string_view attribute_name,
@@ -42,12 +42,12 @@ class SaxFsm {
                                   const xmlChar** attributes);
 
  private:
-  const std::string_view m_parent_node;
-  std::ofstream& m_stream;
-  Playlist& m_playlist;
-  int m_indentation{1};
-  std::string m_characters;
-  std::string m_current_node_name;
+  const std::string_view parent_node_;
+  std::ofstream& stream_;
+  Playlist& playlist_;
+  int indentation_{1};
+  std::string characters_;
+  std::string current_node_name_;
 };
 
 }  // namespace pefti

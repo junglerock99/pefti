@@ -3,14 +3,10 @@
 #include <libxml/parser.h>
 #include <libxml/xmlmemory.h>
 
-#include <algorithm>
 #include <cppcoro/static_thread_pool.hpp>
 #include <cppcoro/task.hpp>
+#include <fstream>
 #include <gsl/gsl>
-#include <iostream>
-#include <optional>
-#include <ranges>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -36,7 +32,7 @@ void Filter::copy_xml_nodes(const std::string& source,
   sax_handler.startElementNs = &SaxFsm::handler_start_element;
   sax_handler.endElementNs = &SaxFsm::handler_end_element;
   sax_handler.characters = &SaxFsm::handler_characters;
-  SaxFsm fsm(std::string{node_name}, destination, m_playlist);
+  SaxFsm fsm(std::string{node_name}, destination, playlist_);
   int result = xmlSAXUserParseMemory(&sax_handler, &fsm, source.c_str(),
                                      int(source.size()));
   if (result != 0) throw std::runtime_error("Failed to parse XML document");
@@ -44,7 +40,7 @@ void Filter::copy_xml_nodes(const std::string& source,
 }
 
 // Filters EPGs and creates a new EPG file.
-// Copies <channel> and <programme> nodes from all EPGs to the new EPG.
+// Copies <channel> and <programme> nodes from all input EPGs to the new EPG.
 void Filter::filter(std::vector<std::string>&& epgs,
                     std::string_view new_epg_filename) {
   if (epgs.empty()) return;
@@ -62,75 +58,87 @@ void Filter::filter(std::vector<std::string>&& epgs,
   new_epg_stream.close();
 }
 
-cppcoro::task<> Filter::filter_iptv_channels(
-    cppcoro::static_thread_pool& tp, PlaylistParserFilterBuffer& buffer) {
+// Filters IPTV channels.
+cppcoro::task<> Filter::filter(cppcoro::static_thread_pool& tp,
+                               PlaylistParserFilterBuffer& pf_buffer,
+                               PlaylistFilterTransformerBuffer& ft_buffer) {
   //
   // Lambdas
   //
   const auto is_blocked_group = [this](auto&& channel) {
     const auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
     return ((group_title != std::nullopt) &&
-            (m_config.is_blocked_group(*group_title)));
+            (config_.is_blocked_group(*group_title)));
   };
   //
   const auto is_blocked_channel = [this](auto&& channel) {
-    return m_config.is_blocked_channel(channel.get_original_name());
+    return config_.is_blocked_channel(channel.get_original_name());
   };
   //
   const auto is_blocked_url = [this](auto&& channel) {
-    return m_config.is_blocked_url(channel.get_url());
+    return config_.is_blocked_url(channel.get_url());
   };
   //
   // A special case is that if no allowed groups or allowed channels are
   // specified in the configuration then all channels are allowed.
   const auto are_all_channels_allowed = [this]() {
-    return (m_config.get_num_channels_templates() +
-            m_config.get_num_allowed_groups()) == 0;
+    return (config_.get_num_channels_templates() +
+            config_.get_num_allowed_groups()) == 0;
   };
   //
   const auto is_allowed_group = [this](auto&& channel) {
     const auto group_title = channel.get_tag_value(IptvChannel::kTagGroupTitle);
     return ((group_title != std::nullopt) &&
-            (m_config.is_allowed_group(*group_title)));
+            (config_.is_allowed_group(*group_title)));
   };
   //
   const auto is_allowed_channel = [this](auto&& channel) {
-    return m_channels_mapper.is_allowed_channel(channel);
+    return channels_mapper_.is_allowed_channel(channel);
   };
   //
   // End of lambdas
   //
-  // Schedule this coroutine onto the threadpool
   co_await tp.schedule();
-  //
-  // Buffer size must be a power of 2
-  constexpr auto size = std::tuple_size<decltype(buffer.data)>::value;
-  static_assert((size > 0) && ((size & (size - 1)) == 0));
-  const size_t index_mask = buffer.data.size() - 1;
-  size_t read_index{0};
-  while (true) {
-    //
-    // Wait for next channel to be added to the buffer
-    const size_t write_index =
-        co_await buffer.sequencer.wait_until_published(read_index, tp);
+  const auto kPfIndexMask = pf_buffer.get_index_mask();
+  const auto kFtIndexMask = ft_buffer.get_index_mask();
+  size_t pf_read_index{0};
+  bool received_sentinel{false};
+  while (!received_sentinel) {
+    const size_t pf_write_index =
+        co_await pf_buffer.sequencer.wait_until_published(pf_read_index, tp);
     do {
-      auto& channel = buffer.data[read_index & index_mask];
+      auto& channel = pf_buffer.data[pf_read_index & kPfIndexMask];
       const bool is_sentinel = channel.get_original_name() == kSentinel;
       if (!is_sentinel) {
-        //
-        // Apply filters
         if (!is_blocked_group(channel) && !is_blocked_channel(channel) &&
             !is_blocked_url(channel) &&
             (are_all_channels_allowed() || is_allowed_group(channel) ||
              is_allowed_channel(channel))) {
-          m_playlist.push_back(std::move(channel));
+          size_t ft_write_index = co_await ft_buffer.sequencer.claim_one(tp);
+          ft_buffer.data[ft_write_index & kFtIndexMask] = std::move(channel);
+          ft_buffer.sequencer.publish(ft_write_index);
         }
       } else {
-        co_return;
+        received_sentinel = true;
+        break;
       }
-    } while (read_index++ != write_index);
-    buffer.barrier.publish(read_index);
+    } while (pf_read_index++ != pf_write_index);
+    pf_buffer.barrier.publish(pf_read_index);
   }
+  co_await publish_sentinel(tp, ft_buffer);
+}
+
+// Publishes a sentinel to the ring buffer to indicate end of data.
+cppcoro::task<> Filter::publish_sentinel(
+    cppcoro::static_thread_pool& tp,
+    PlaylistFilterTransformerBuffer& ft_buffer) {
+  co_await tp.schedule();
+  const auto kIndexMask = ft_buffer.get_index_mask();
+  size_t write_index = co_await ft_buffer.sequencer.claim_one(tp);
+  IptvChannel sentinel;
+  sentinel.set_original_name(kSentinel);
+  ft_buffer.data[write_index & kIndexMask] = std::move(sentinel);
+  ft_buffer.sequencer.publish(write_index);
 }
 
 }  // namespace pefti

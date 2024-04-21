@@ -38,18 +38,18 @@ class Config : public ConfigReader {
   Config& operator=(Config&&) = delete;
 
   decltype(auto) get_allowed_groups() {
-    return m_config.allowed_groups | std::ranges::views::all;
+    return config_.allowed_groups | std::ranges::views::all;
   }
 
   decltype(auto) get_blocked_tags() {
-    return m_config.blocked_tags | std::ranges::views::all;
+    return config_.blocked_tags | std::ranges::views::all;
   }
 
   decltype(auto) get_channels_templates() {
-    return m_config.channels_templates | std::ranges::views::all;
+    return config_.channels_templates | std::ranges::views::all;
   }
 
-  bool get_copy_group_title_flag() { return m_config.copy_group_title; }
+  bool get_copy_group_title_flag() { return config_.copy_group_title; }
 
   // Returns an enum representing the value of [channels].duplicates_location
   const DuplicatesLocation& get_duplicates_location() noexcept;
@@ -57,12 +57,10 @@ class Config : public ConfigReader {
   const std::vector<std::string>& get_epgs_urls() noexcept;
 
   // Returns number of channels in [channels].allow in configuration file
-  int get_num_channels_templates() {
-    return m_config.channels_templates.size();
-  }
+  int get_num_channels_templates() { return config_.channels_templates.size(); }
 
   // Returns the number of groups in [groups].allow in the configuration file
-  int get_num_allowed_groups() { return m_config.allowed_groups.size(); }
+  int get_num_allowed_groups() { return config_.allowed_groups.size(); }
 
   // Returns the value of [channels].number_of_duplicates in the configuration
   // file
@@ -78,7 +76,7 @@ class Config : public ConfigReader {
   const std::vector<std::string>& get_playlists_urls();
 
   decltype(auto) get_sort_qualities() {
-    return m_config.sort_qualities | std::ranges::views::all;
+    return config_.sort_qualities | std::ranges::views::all;
   }
 
   bool is_allowed_group(std::string_view group_name);
@@ -105,8 +103,8 @@ class Config : public ConfigReader {
   };
 
  private:
-  PeftiConfig m_config;
-  DuplicatesLocation m_duplicates_location;
+  PeftiConfig config_;
+  DuplicatesLocation duplicates_location_;
 
   friend class ChannelsMapper;
 };

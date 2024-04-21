@@ -15,31 +15,34 @@
 
 namespace pefti {
 
-// Application logic for filtering playlists and EPGs
+// Filters playlists and EPGs.
 class Filter {
  public:
   Filter(ConfigType& config, Playlist& playlist,
          ChannelsMapper& channels_mapper)
-      : m_config(config),
-        m_playlist(playlist),
-        m_channels_mapper(channels_mapper) {}
+      : config_(config),
+        playlist_(playlist),
+        channels_mapper_(channels_mapper) {}
   Filter(Filter&) = delete;
   Filter(Filter&&) = delete;
   Filter& operator=(Filter&) = delete;
   Filter& operator=(Filter&&) = delete;
   void filter(std::vector<std::string>&& epgs,
               std::string_view new_epg_filename);
-  cppcoro::task<> filter_iptv_channels(cppcoro::static_thread_pool& tp,
-                                       PlaylistParserFilterBuffer& buffer);
+  cppcoro::task<> filter(cppcoro::static_thread_pool& tp,
+                         PlaylistParserFilterBuffer& pf_buffer,
+                         PlaylistFilterTransformerBuffer& ft_buffer);
 
  private:
   void copy_xml_nodes(const std::string& epg, std::string_view node_name,
                       std::ofstream& new_epg_stream);
+  cppcoro::task<> publish_sentinel(cppcoro::static_thread_pool& tp,
+                                   PlaylistFilterTransformerBuffer& ft_buffer);
 
  private:
-  ConfigType& m_config;
-  Playlist& m_playlist;
-  ChannelsMapper& m_channels_mapper;
+  ConfigType& config_;
+  Playlist& playlist_;
+  ChannelsMapper& channels_mapper_;
 };
 
 }  // namespace pefti

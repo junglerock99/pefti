@@ -34,16 +34,16 @@ class ChannelsMapper {
   typedef std::unordered_map<std::string, ChannelTemplate*> NameToTemplateMap;
 
   // Maps IPTV channel names to channel templates
-  NameToTemplateMap m_name_to_template_map;
+  NameToTemplateMap name_to_template_map_;
 
   // Maps channel templates to IPTV channels
-  TemplateToChannelsMapper m_template_to_channels_map;
+  TemplateToChannelsMapper template_to_channels_map_;
 
   // Maps IPTV channels to channel templates
-  ChannelToTemplateMap m_channel_to_template_map;
+  ChannelToTemplateMap channel_to_template_map_;
 
-  ConfigType* m_config;
-  Playlist* m_playlist;
+  ConfigType* config_;
+  Playlist* playlist_;
 };
 
 }  // namespace pefti

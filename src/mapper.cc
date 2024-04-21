@@ -27,8 +27,7 @@ bool ChannelsMapper::is_allowed_channel(IptvChannel& iptv_channel) {
 std::optional<ChannelTemplate*> ChannelsMapper::map_channel_to_template(
     IptvChannel& iptv_channel) {
   const auto& name = iptv_channel.get_original_name();
-  if (m_name_to_template_map.contains(name))
-    return m_name_to_template_map[name];
+  if (name_to_template_map_.contains(name)) return name_to_template_map_[name];
   //
   // Convert channel_name to lowercase
   std::string name_lower{};
@@ -51,14 +50,14 @@ std::optional<ChannelTemplate*> ChannelsMapper::map_channel_to_template(
     }
     return false;
   };
-  for (auto& ct : m_config->m_config.channels_templates) {
+  for (auto& ct : config_->config_.channels_templates) {
     bool is_included = std::all_of(ct.include.cbegin(), ct.include.cend(),
                                    channel_name_contains);
     bool is_excluded = std::any_of(ct.exclude.cbegin(), ct.exclude.cend(),
                                    channel_name_contains);
     if (is_included && !is_excluded) {
       // Add this result to the cache
-      m_name_to_template_map[name] = &ct;
+      name_to_template_map_[name] = &ct;
       return &ct;
     }
   }
@@ -67,27 +66,25 @@ std::optional<ChannelTemplate*> ChannelsMapper::map_channel_to_template(
 
 std::vector<IptvChannel*>& ChannelsMapper::map_template_to_channel(
     ChannelTemplate& channel_template) {
-  return m_template_to_channels_map[&channel_template];
+  return template_to_channels_map_[&channel_template];
 }
 
-// m_name_to_template_map gets populated during filtering,
+// name_to_template_map_ gets populated during filtering,
 // now we can use it to populate the other maps.
 void ChannelsMapper::populate_maps() {
-  std::ranges::for_each(*m_playlist, [this](auto&& iptv_channel) {
+  std::ranges::for_each(*playlist_, [this](auto&& iptv_channel) {
     const auto& name = iptv_channel.get_original_name();
-    if (m_name_to_template_map.contains(name)) {
-      auto channel_template = m_name_to_template_map[name];
-      m_channel_to_template_map[&iptv_channel] = channel_template;
-      m_template_to_channels_map[channel_template].push_back(&iptv_channel);
+    if (name_to_template_map_.contains(name)) {
+      auto channel_template = name_to_template_map_[name];
+      channel_to_template_map_[&iptv_channel] = channel_template;
+      template_to_channels_map_[channel_template].push_back(&iptv_channel);
     }
   });
 }
 
-void ChannelsMapper::set_config(ConfigType& config) { m_config = &config; }
+void ChannelsMapper::set_config(ConfigType& config) { config_ = &config; }
 
-void ChannelsMapper::set_playlist(Playlist& playlist) {
-  m_playlist = &playlist;
-}
+void ChannelsMapper::set_playlist(Playlist& playlist) { playlist_ = &playlist; }
 
 void to_lower(std::string_view original, std::string& lowercase) {
   std::transform(original.cbegin(), original.cend(),

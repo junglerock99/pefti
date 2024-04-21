@@ -1,9 +1,8 @@
 #include "config.h"
 
+#include <string>
 #include <string_view>
 #include <vector>
-
-#include "iptv_channel.h"
 
 using namespace std::literals;
 
@@ -17,75 +16,74 @@ Config<ConfigReader>::Config(std::string& config_filename)
   ConfigReader::check_required_element("resources");
   ConfigReader::check_required_element("resources.playlists");
   ConfigReader::check_required_element("resources.new_playlist");
-  ConfigReader::get_data("resources.playlists", m_config.playlists_urls);
+  ConfigReader::get_data("resources.playlists", config_.playlists_urls);
   ConfigReader::get_data("resources.new_playlist",
-                         m_config.new_playlist_filename);
-  ConfigReader::get_data("resources.epgs", m_config.epgs_urls);
-  ConfigReader::get_data("resources.new_epg", m_config.new_epg_filename);
-  ConfigReader::get_data("groups.allow", m_config.allowed_groups);
-  ConfigReader::get_data("groups.block", m_config.blocked_groups);
-  ConfigReader::get_data("urls.block", m_config.blocked_urls);
-  ConfigReader::get_data("channels.copy_group_title",
-                         m_config.copy_group_title);
+                         config_.new_playlist_filename);
+  ConfigReader::get_data("resources.epgs", config_.epgs_urls);
+  ConfigReader::get_data("resources.new_epg", config_.new_epg_filename);
+  ConfigReader::get_data("groups.allow", config_.allowed_groups);
+  ConfigReader::get_data("groups.block", config_.blocked_groups);
+  ConfigReader::get_data("urls.block", config_.blocked_urls);
+  ConfigReader::get_data("channels.copy_group_title", config_.copy_group_title);
   ConfigReader::get_data("channels.number_of_duplicates",
-                         m_config.num_duplicates);
+                         config_.num_duplicates);
   ConfigReader::get_data("channels.duplicates_location",
-                         m_config.duplicates_location);
-  ConfigReader::get_data("channels.sort_qualities", m_config.sort_qualities);
-  ConfigReader::get_data("channels.tags_block", m_config.blocked_tags);
-  ConfigReader::get_data("channels.block", m_config.blocked_channels);
-  ConfigReader::get_data("channels.allow", m_config.channels_templates);
-  if (m_config.duplicates_location == "inline")
-    m_duplicates_location = DuplicatesLocation::kInline;
-  else if (m_config.duplicates_location == "append")
-    m_duplicates_location = DuplicatesLocation::kAppend;
+                         config_.duplicates_location);
+  ConfigReader::get_data("channels.sort_qualities", config_.sort_qualities);
+  ConfigReader::get_data("channels.tags_block", config_.blocked_tags);
+  ConfigReader::get_data("channels.block", config_.blocked_channels);
+  ConfigReader::get_data("channels.allow", config_.channels_templates);
+  if (config_.duplicates_location == "inline")
+    duplicates_location_ = DuplicatesLocation::kInline;
+  else if (config_.duplicates_location == "append")
+    duplicates_location_ = DuplicatesLocation::kAppend;
   else {
-    m_duplicates_location = DuplicatesLocation::kNone;
-    m_config.num_duplicates = 0;
+    duplicates_location_ = DuplicatesLocation::kNone;
+    config_.num_duplicates = 0;
   }
 }
 
 template <typename ConfigReader>
 const Config<ConfigReader>::DuplicatesLocation&
 Config<ConfigReader>::get_duplicates_location() noexcept {
-  return m_duplicates_location;
+  return duplicates_location_;
 }
 
 template <typename ConfigReader>
 const std::vector<std::string>& Config<ConfigReader>::get_epgs_urls() noexcept {
-  return m_config.epgs_urls;
+  return config_.epgs_urls;
 }
 
 template <typename ConfigReader>
 const std::vector<std::string>& Config<ConfigReader>::get_playlists_urls() {
-  return m_config.playlists_urls;
+  return config_.playlists_urls;
 }
 
 template <typename ConfigReader>
 int Config<ConfigReader>::get_num_duplicates() noexcept {
-  return m_config.num_duplicates;
+  return config_.num_duplicates;
 }
 
 template <typename ConfigReader>
 std::string_view Config<ConfigReader>::get_new_epg_filename() noexcept {
-  return m_config.new_epg_filename;
+  return config_.new_epg_filename;
 }
 
 template <typename ConfigReader>
 const std::string& Config<ConfigReader>::get_new_playlist_filename() noexcept {
-  return m_config.new_playlist_filename;
+  return config_.new_playlist_filename;
 }
 
 template <typename ConfigReader>
 bool Config<ConfigReader>::is_allowed_group(std::string_view group_name) {
-  return m_config.allowed_groups.contains(std::string{group_name});
+  return config_.allowed_groups.contains(std::string{group_name});
 }
 
 template <typename ConfigReader>
 bool Config<ConfigReader>::is_blocked_channel(
     std::string_view original_channel_name) {
   bool is_blocked_channel{false};
-  for (auto& substring : m_config.blocked_channels) {
+  for (auto& substring : config_.blocked_channels) {
     if (original_channel_name.find(substring) != std::string::npos) {
       is_blocked_channel = true;
       break;
@@ -96,12 +94,12 @@ bool Config<ConfigReader>::is_blocked_channel(
 
 template <typename ConfigReader>
 bool Config<ConfigReader>::is_blocked_group(std::string_view group_name) {
-  return m_config.blocked_groups.contains(std::string{group_name});
+  return config_.blocked_groups.contains(std::string{group_name});
 }
 
 template <typename ConfigReader>
 bool Config<ConfigReader>::is_blocked_url(std::string_view url) {
-  return m_config.blocked_urls.contains(std::string{url});
+  return config_.blocked_urls.contains(std::string{url});
 }
 
 }  // namespace pefti

@@ -9,6 +9,7 @@ set(SOURCE_FILES
     ${SOURCE_DIR}/epg.cc
     ${SOURCE_DIR}/filter.cc
     ${SOURCE_DIR}/iptv_channel.cc
+    ${SOURCE_DIR}/loader.cc
     ${SOURCE_DIR}/main.cc
     ${SOURCE_DIR}/mapper.cc
     ${SOURCE_DIR}/parser.cc
