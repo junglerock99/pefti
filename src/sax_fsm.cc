@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <iostream>
 #include <string>
 
 #include "playlist.h"
@@ -108,10 +107,6 @@ void SaxFsm::handler_start_element(void* context, const xmlChar* local_name,
       std::string tvg_id =
           fsm.get_attribute_value(attribute_name, num_attributes, attributes);
       if (!fsm.playlist_.is_tvg_id_in_playlist(tvg_id)) return;
-
-      if (fsm.parent_node_ == kProgramme)
-        std::cout << tvg_id << " is in playlist" << std::endl;
-
       fsm.indentation_ = 1;
     } else {
       return;
