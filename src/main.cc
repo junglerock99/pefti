@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <cxxopts.hpp>
 #include <exception>
 #include <filesystem>
@@ -22,10 +23,9 @@ void verify_file(std::string& config_filename);
 
 // Processes command-line arguments then creates and runs the application.
 // All exceptions are handled here.
-// Exit status: 0 on normal exit
-//              1 on abnormal exit
+// Returns: EXIT_SUCCESS on successful execution
+//          EXIT_FAILURE on unsuccessful execution
 int main(int argc, char* argv[]) {
-  int result = 0;
   try {
     std::string config_filename;
     AppStatus status = process_arguments(argc, argv, config_filename);
@@ -33,13 +33,13 @@ int main(int argc, char* argv[]) {
       pefti::Application app(std::move(config_filename));
       app.run();
     } else if (status == AppStatus::kError) {
-      result = 1;
+      return EXIT_FAILURE;
     }
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
-    result = 1;
+      return EXIT_FAILURE;
   }
-  return result;
+  return EXIT_SUCCESS;
 }
 
 static void print_usage() {
