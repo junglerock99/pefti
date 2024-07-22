@@ -63,7 +63,17 @@ void SaxFsm::handler_end_element(void* context, const xmlChar* local_name,
         throw std::runtime_error("Invalid XML");
       if (!std::all_of(fsm.characters_.begin(), fsm.characters_.end(),
                        isspace)) {
-        fsm.stream_ << fsm.characters_;
+        for (const char& c : fsm.characters_) {
+          // Escape special characters
+          switch (c) {
+            case '&':  fsm.stream_ << "&amp;";  break;
+            case '\"': fsm.stream_ << "&quot;"; break;
+            case '\'': fsm.stream_ << "&apos;"; break;
+            case '<':  fsm.stream_ << "&lt;";   break;
+            case '>':  fsm.stream_ << "&gt;";   break;
+            default:   fsm.stream_ << c;        break;
+          }
+        }
       }
     } break;
     case State::kOutsideNode:
